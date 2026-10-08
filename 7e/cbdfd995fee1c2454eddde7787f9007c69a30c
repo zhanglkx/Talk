@@ -1,0 +1,72 @@
+apps/web/src/main.tsx
+  s_246f50b516b297::t_5aee2afa66358e 1-7
+apps/api/test/health.spec.ts
+  s_246f50b516b297::t_220a583cf2c560 1-28
+apps/api/src/configure-app.ts
+  s_246f50b516b297::t_15214804a23a77 1-5
+apps/api/src/app.module.ts
+  s_246f50b516b297::t_725fab38f3768a 2,4
+  s_246f50b516b297::t_bf85a5d71b57b2 1,3,5
+apps/web/tsconfig.json
+  s_246f50b516b297::t_9095243119681a 1-15
+apps/api/vitest.config.ts
+  s_246f50b516b297::t_01bff1c8c53a52 1-8
+apps/web/index.html
+  s_246f50b516b297::t_40cdc0c090ba6d 1-12
+.gitignore
+  s_246f50b516b297::t_4bd1e192d2e5c7 1-9
+apps/api/src/generate-openapi.ts
+  s_246f50b516b297::t_c390cb3398b1da 1-23
+apps/web/src/App.tsx
+  s_246f50b516b297::t_0c0d2f8d7ebf29 1-5,8-12,17,22-28,31,33
+  s_246f50b516b297::t_8a6556b80b7608 7,13-16,18-21,34-40
+  s_246f50b516b297::t_f542111e8014b1 6,29-30,32,41-43
+apps/api/tsconfig.build.json
+  s_246f50b516b297::t_8bd53dcf87e618 1-10
+apps/web/package.json
+  s_246f50b516b297::t_d9b029f6867304 1-29
+apps/api/package.json
+  s_246f50b516b297::t_3e3eab65ed428f 1-31
+pnpm-workspace.yaml
+  s_246f50b516b297::t_2cd0647036f62c 1-3
+apps/api/test/openapi.spec.ts
+  s_246f50b516b297::t_ab037f52f89b3d 1-35
+apps/api/src/health/health.controller.ts
+  s_246f50b516b297::t_9e71b955082e58 1,3,9-11,15-16
+  s_246f50b516b297::t_5bb737b2662d3e 2,4-8,12-14
+apps/api/tsconfig.json
+  s_246f50b516b297::t_f178ea952e01fe 1-17
+package.json
+  s_246f50b516b297::t_9eae10972a769e 1-17
+apps/api/nest-cli.json
+  s_246f50b516b297::t_030fbfb69a9c65 1-9
+apps/web/src/generated/api-types.ts
+  s_246f50b516b297::t_708a63d575664c 1-59
+apps/api/src/health/health.module.ts
+  s_246f50b516b297::t_5d819f4282e001 1-5
+apps/api/src/main.ts
+  s_246f50b516b297::t_24b301762ca25f 1-8
+apps/web/vite.config.ts
+  s_246f50b516b297::t_57e09b963bf1d6 1-16
+apps/web/src/App.test.tsx
+  s_246f50b516b297::t_a8bf62bec0d345 22-32
+  s_246f50b516b297::t_91ae973456dcc6 1-21,33
+docs/openapi.json
+  s_246f50b516b297::t_4feaaab182eb0c 1-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "7ecbdfd995fee1c2454eddde7787f9007c69a30c",
+  "prompts": {},
+  "sessions": {
+    "s_246f50b516b297": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_6cd85969zm13",
+        "model": "gpt-6-sol-2026-09-22"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
