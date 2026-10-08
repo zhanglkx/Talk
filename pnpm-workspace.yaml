@@ -1,3 +1,32 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+allowBuilds:
+  '@scarf/scarf': false
+  '@swc/core': true
+minimumReleaseAgeExclude:
+  - 'rolldown@1.2.13'
+  - '@rolldown/binding-android-arm-eabi@1.2.13'
+  - '@rolldown/binding-android-arm64@1.2.13'
+  - '@rolldown/binding-darwin-arm64@1.2.13'
+  - '@rolldown/binding-darwin-x64@1.2.13'
+  - '@rolldown/binding-freebsd-x64@1.2.13'
+  - '@rolldown/binding-linux-arm-gnueabihf@1.2.13'
+  - '@rolldown/binding-linux-arm64-gnu@1.2.13'
+  - '@rolldown/binding-linux-arm64-musl@1.2.13'
+  - '@rolldown/binding-linux-ppc64-gnu@1.2.13'
+  - '@rolldown/binding-linux-s390x-gnu@1.2.13'
+  - '@rolldown/binding-linux-x64-gnu@1.2.13'
+  - '@rolldown/binding-linux-x64-musl@1.2.13'
+  - '@rolldown/binding-openharmony-arm64@1.2.13'
+  - '@rolldown/binding-win32-arm64-msvc@1.2.13'
+  - '@rolldown/binding-win32-x64-msvc@1.2.13'
+  - 'tldts@7.4.18'
+  - 'tldts-core@7.4.18'
+  - typeorm@1.1.2
+packageExtensions:
+  'openapi-typescript@7.13.0':
+    dependencies:
+      typescript: 6.0.3
+patchedDependencies:
+  '@nestjs/cli@12.0.8': patches/@nestjs__cli@12.0.8.patch

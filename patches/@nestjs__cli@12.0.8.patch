@@ -1,0 +1,13 @@
+diff --git a/lib/compiler/typescript-loader.js b/lib/compiler/typescript-loader.js
+index 3437af601d15957bf3421381ccf60e57d3c8c1a2..b04dd840aab85877f4b3d8c0c5da626c526342f8 100644
+--- a/lib/compiler/typescript-loader.js
++++ b/lib/compiler/typescript-loader.js
+@@ -10,7 +10,7 @@ export class TypeScriptBinaryLoader {
+         let tsBinary;
+         try {
+             const tsBinaryPath = require.resolve('typescript', {
+-                paths: [process.cwd(), ...this.getModulePaths()],
++                paths: this.getModulePaths(),
+             });
+             tsBinary = require(tsBinaryPath);
+         }

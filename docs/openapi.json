@@ -21,6 +21,43 @@
           "Health"
         ]
       }
+    },
+    "/internal/ready": {
+      "get": {
+        "operationId": "InternalController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                },
+                "example": {
+                  "status": "ready"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotReadyResponse"
+                },
+                "example": {
+                  "status": "not_ready"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Internal"
+        ]
+      }
     }
   },
   "info": {
@@ -41,6 +78,36 @@
             "enum": [
               "ok"
             ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready"
+            ],
+            "example": "ready"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "NotReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_ready"
+            ],
+            "example": "not_ready"
           }
         },
         "required": [
