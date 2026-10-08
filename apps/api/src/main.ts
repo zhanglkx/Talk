@@ -5,4 +5,5 @@ import { configureApp } from './configure-app.js'
 
 const app = await NestFactory.create(AppModule)
 configureApp(app)
+app.enableShutdownHooks()
 await app.listen(Number(process.env.PORT ?? 3000), '127.0.0.1')

@@ -1,10 +1,11 @@
 # PRD｜个人账本与 AI 分析助手（全栈学习项目）
 
-- 版本：v1.1（NestJS 后端框架修订，开发依据）
+- 版本：v1.2（NestJS + TypeORM PostgreSQL 数据层修订，开发依据）
 - 日期：2026-10-08
 - 产品性质：个人学习作品、虚构账单数据演示；**不是支付系统、理财建议产品或生产财务系统**
-- 目标技术路径：React + TypeScript 前端、NestJS（Node.js + TypeScript）服务、PostgreSQL、受限的 AI 问答
+- 目标技术路径：React + TypeScript 前端、NestJS（Node.js + TypeScript）服务、`@nestjs/typeorm` + TypeORM + `pg` 驱动的 PostgreSQL、受限的 AI 问答
 - 预计投入：约 5 小时/周，24 周约 120 小时；里程碑是目标，不以熬夜补进度
+- 当前实施状态（2026-10-08）：NestJS API 与 React Web 最小原型已经创建；API 已通过 `@nestjs/typeorm` + TypeORM + `pg` 使用单一 `DATABASE_URL` 连接本机 PostgreSQL，并完成真实 `SELECT 1` smoke 验证；现有 API 测试 32 个、Web 测试 2 个通过。当前仅有应用骨架、存活/就绪探针及最小 Web 壳，账本业务模块、业务 Entity/Repository、版本化 migration、鉴权、流水、报表和 AI 尚未实现，也尚未部署；这些原型测试不能替代下文的业务验收。
 
 ## 1. 背景、选择与目标
 
@@ -22,7 +23,7 @@
 
 **学习目标**：独立交付“浏览器 → Node API → PostgreSQL → 测试/CI/部署/观测 → AI 受限工具”的闭环。这里的“完整后端”指常用工程核心能力，不宣称一个项目覆盖分布式系统、数据库内核、模型训练等全部领域。
 
-**成功定义**：在全新环境中按文档启动应用、运行迁移和虚构数据种子；两个测试账号的数据互不可见；账本/月报结果可与数据库独立核对；CI 可运行；AI 的数值、来源和拒绝行为经过固定样例集评估。
+**成功定义**：在全新环境中按文档配置数据库、显式运行 migration 和虚构数据种子后再启动应用；两个测试账号的数据互不可见；账本/月报结果可与数据库独立核对；CI 可运行；AI 的数值、来源和拒绝行为经过固定样例集评估。
 
 ## 2. 用户、边界与优先级
 
@@ -65,27 +66,30 @@
 
 ## 4. 系统结构与技术边界
 
+下图是 P0/P1 的**目标业务架构**；当前已实现范围仅为 NestJS/React 骨架、数据库接入与健康探针，不能据此声称账本业务链路已经落地。
+
 ```mermaid
 flowchart LR
   WEB[React Web] --> API[NestJS Node.js TypeScript API]
   IOS[iOS 客户端·P2] -.复用接口.-> API
   API --> AUTH[会话/Guard/Pipe 校验]
   AUTH --> DOMAIN[账本业务服务]
-  DOMAIN --> DB[(PostgreSQL)]
+  DOMAIN --> DATA[Entity + TypeORM Repository/自定义 Repository]
+  DATA --> DB[(PostgreSQL)]
   API --> AGENT[AI 编排·P1]
   AGENT --> TOOL[只读领域工具]
   TOOL --> DOMAIN
   AGENT --> MODEL[外部模型 API]
 ```
 
-- **Node 主栈**：Node.js LTS + TypeScript strict + NestJS（Express HTTP 适配器）。按 `Auth`、`Categories`、`Entries`、`Reports` 与 P1 的 `Ai` 模块组织 Controller → Service → Repository；用 Pipe 校验输入、Guard 校验会话身份，以依赖注入管理边界。仍需学习 Node 异步 I/O、HTTP、Express 中间件和错误链；不能让框架装饰器代替 SQL、权限和事务，也不同时引入 Fastify、微服务或第二套后端框架。
-- **数据库**：PostgreSQL；版本化 SQL 迁移；使用参数化查询与受控连接池。先学明白 SQL、约束、索引、事务和 `EXPLAIN`，不以 ORM 代替这些知识。
+- **Node 主栈**：最新稳定 Node.js（当前精确固定为 26.11.1，发布通道为 Current）+ TypeScript strict + NestJS（Express HTTP 适配器）。按 `Auth`、`Categories`、`Entries`、`Reports` 与 P1 的 `Ai` 模块组织 Controller → Service → Entity + TypeORM Repository/自定义 Repository；用 Pipe 校验输入、Guard 校验会话身份，以依赖注入管理边界。仍需学习 Node 异步 I/O、HTTP、Express 中间件和错误链；不能让框架装饰器或 ORM 代替 SQL、权限和事务，也不同时引入 Fastify、微服务或第二套后端框架。
+- **数据库**：本机 PostgreSQL，通过 Nest `@nestjs/typeorm` + TypeORM 和 `pg` PostgreSQL driver 接入；Entity 映射表结构，业务查询使用 TypeORM Repository/自定义 Repository。数据库配置只有一个 `DATABASE_URL`；固定 `synchronize: false`、`migrationsRun: false`，版本化 migration 只通过显式命令运行，应用启动绝不自动改表。查询继续使用 Repository/QueryBuilder 参数绑定或参数化原生 SQL，并通过 migration、约束、索引、事务和 `EXPLAIN ANALYZE` 学习及核对真实 SQL，不能把 ORM 当作这些知识的替代。
 - **API 契约**：`/api/v1`、JSON、从服务端 Controller 与校验 Schema 生成并核对的 OpenAPI 文档；所有金额在 API 中用**分的十进制字符串**传输，避免 JavaScript 浮点与大整数精度问题。
-- **环境**：本地 Node + PostgreSQL（可用 Docker Compose）；预览环境同源 HTTPS 部署 Web 与 API，避免把 CORS 配置当作产品功能。前端不持有模型密钥或数据库凭证。
+- **环境**：本地 Node + 本机 PostgreSQL；项目明确不使用 Docker 或 Docker Compose。开发、测试、迁移与运行统一从单个 `DATABASE_URL` 取连接信息；预览环境同源 HTTPS 部署 Web 与 API，避免把 CORS 配置当作产品功能。前端不持有模型密钥或数据库凭证。
 
 ## 5. API 契约
 
-登录会话使用成熟认证/会话库；账号通过本地种子或受控邀请建立，不提供公开注册。所有业务接口从服务端会话取得 `userId`，**不接受客户端或模型传入的 userId 作为授权依据**。
+登录会话使用成熟认证/会话库；账号通过管理员执行的本地种子或受控邀请建立，不提供公开注册。所有业务接口从服务端会话取得 `userId`，**不接受客户端或模型传入的 userId 作为授权依据**。
 
 | 接口 | 请求要点 | 成功行为 | 核心错误 |
 |---|---|---|---|
@@ -98,7 +102,8 @@ flowchart LR
 | `PATCH /api/v1/entries/{id}` / `DELETE /api/v1/entries/{id}` | 修改或软删除本人流水 | 列表、报表随之更新；重复删除返回 204 | 400、404 |
 | `GET /api/v1/reports/monthly` | `month=YYYY-MM` | 收入、支出、结余及分类合计 | 400、401 |
 | `POST /api/v1/ai/questions` | `question`，最长 500 字 | 回答、事实卡片、证据、`requestId` | 400、401、429、503 |
-| `GET /api/v1/health` | 无 | 仅提供不含秘密的存活状态 | 503 |
+| `GET /api/v1/health` | 无 | 纯进程存活检查；进程能响应即返回 200，不查询数据库 | 无应用级 503；进程不可用时连接失败 |
+| `GET /internal/ready` | 内部探针 | 检查数据库依赖可用；不得暴露公网 | 数据库不可用时 503 |
 
 创建流水请求示例（`Idempotency-Key` 为客户端生成并在重试时保持不变的 UUID）：
 
@@ -141,7 +146,7 @@ erDiagram
 1. `entries(user_id,category_id)` 与 `categories(user_id,id)` 建立可校验的同用户关联；服务层仍要验证权限和分类方向。归档分类不可用于新增，但不影响历史月报。
 2. 月报只统计未删除流水，时间范围为上海时区所选月份的 `[月初, 次月初)`，换算成 UTC 查询；`净额 = 收入 - 支出`，不跨币种加总。
 3. 对 `entries(user_id,occurred_at DESC,id DESC)` 建立面向有效流水的索引；分页和月报在虚构数据量增加后用 `EXPLAIN ANALYZE` 检查，先测量再加缓存。
-4. 每次结构变更提交可审阅的迁移；预览环境先迁移并演练备份/恢复。`BIGINT`/聚合值在 Node 和 JSON 中以十进制字符串处理，不能经由 `Number` 丢失精度。
+4. 每次结构变更提交可审阅的版本化 TypeORM migration；`synchronize: false`、`migrationsRun: false`，开发、测试和预览环境均先显式执行 migration 命令，再启动应用，并演练备份/恢复。TypeORM 底层 `pg` driver 对 PostgreSQL `BIGINT`/聚合值的真实行为仍是返回十进制字符串；Entity、领域对象和 JSON 必须保持字符串或使用 `BigInt`/精确十进制处理，不能经由 `Number` 丢失精度。
 5. 更新暂按“最后一次有效提交生效”；并发编辑的乐观锁为 P2。失败的事务不得留下半笔账、残留幂等记录或错误月报。
 
 ## 7. AI 功能需求与安全边界
@@ -165,18 +170,18 @@ erDiagram
 | 维度 | 要求与可验证方式 |
 |---|---|
 | 安全 | HTTPS；HttpOnly、Secure、SameSite Cookie；状态修改请求做 CSRF/Origin 校验；服务端逐对象鉴权、参数校验和 SQL 参数化；密码/密钥不入仓库，日志脱敏；演示环境禁真实财务数据。 |
-| 可靠性 | 数据库失败回滚；创建接口幂等；异常返回有稳定错误码和 `requestId`；模型故障不影响普通记账与月报。 |
+| 可靠性 | 数据库失败回滚；事务内所有 Repository/查询必须显式使用同一个事务作用域的 `EntityManager` 或 `QueryRunner`，不得退回全局 Repository/`DataSource`；创建接口幂等；异常返回有稳定错误码和 `requestId`；模型故障不影响普通记账与月报。 |
 | 性能 | 用至少 1 万条虚构流水检查查询计划；在记录硬件和环境的预览测试中，非 AI 月报接口目标 p95 < 500ms；AI 目标 p95 < 12s，超时给明确错误。这是验收目标，不是现有实测或商业 SLA。 |
 | 隐私 | 不记录明文密码、会话、完整账本或原始 AI 问题；模型输入只带回答所需的最小聚合数据；提供删除演示数据的受控管理方式。 |
 | 可访问性 | 主要流程可键盘操作，有输入标签/错误提示；统计数据有可读表格，不仅靠颜色或图形区分。 |
-| 可维护性 | NestJS 模块边界、Provider 依赖方向和单一 API 契约清晰；TypeScript 类型检查、格式与 lint、迁移、测试和构建在 CI 中执行。 |
+| 可维护性 | NestJS 模块边界、Provider 依赖方向和单一 API 契约清晰；Entity 与 TypeORM Repository/自定义 Repository 职责明确；TypeScript 类型检查、格式与 lint、显式 migration、测试和构建在 CI 中执行。 |
 | 可观测性 | 请求 ID 串联前端错误、API、数据库查询和 AI 运行；记录状态码、耗时、错误码、工具名与成本，不记录敏感正文；可查看错误率及慢查询。 |
-| 恢复 | 预览部署写明环境变量清单、启动/迁移步骤、备份与恢复演练方法；演示用户数据可重新生成。 |
+| 恢复 | 预览部署写明环境变量清单、显式 migration 命令及先迁移后启动的顺序、备份与恢复演练方法；演示用户数据可重新生成。 |
 
 **测试矩阵**：
 
 - 单元测试：金额转换/范围、月份边界、分类方向、统计公式、错误映射。
-- PostgreSQL 集成测试：迁移、唯一约束、跨用户分类引用、事务回滚、相同/冲突幂等键、软删除后月报更新。
+- PostgreSQL 集成测试：连接本机真实 PostgreSQL，显式运行 migration，覆盖唯一约束、跨用户分类引用、事务回滚、事务内同一 `EntityManager`/`QueryRunner`、相同/冲突幂等键、软删除后月报更新；不用内存数据库代替。
 - API 测试：通过 Nest TestingModule 启动真实 HTTP 应用，检查 Guard/Pipe/异常过滤后的未登录、A 用户访问 B 用户、参数非法、分页边界、429/503 和失败响应结构。
 - Web 端到端测试：登录 → 分类 → 新增 → 月报核对 → 编辑/删除 → 退出；覆盖空态和失败重试。
 - AI 测试：离线固定工具结果测试权限与格式；在虚构数据上进行真实模型评测，单独报告其通过率与成本。
@@ -188,10 +193,10 @@ erDiagram
 |---|---|---|
 | Web 前端 | React 组件、表单、路由、服务端状态、响应式和可访问性 | 主要流程能在手机/桌面完成，并有 E2E 测试 |
 | Node 与 HTTP | 事件循环/异步 I/O、Express 适配器中间件、Nest Controller/Guard/Pipe/Filter、状态码、Cookie、超时和错误链 | API 契约、可追踪请求、失败测试；能解释一次请求完整经过哪些边界 |
-| 服务设计 | Nest Module/Provider/依赖注入、Controller/领域服务/Repository 边界、输入校验、鉴权 | 替换数据层不会改动页面契约；跨用户请求被拒绝；测试可替换外部模型适配器 |
-| SQL 与数据库 | DDL/DML、迁移、FK/唯一约束、聚合、索引、事务与隔离 | 真实 PostgreSQL 集成测试、月报 SQL 与查询计划 |
+| 服务设计 | Nest Module/Provider/依赖注入、Controller/领域服务/Entity + TypeORM Repository/自定义 Repository 边界、输入校验、鉴权 | 替换数据层不会改动页面契约；跨用户请求被拒绝；测试可替换外部模型适配器 |
+| SQL 与数据库 | TypeORM Entity/Repository、参数化查询、DDL/DML、版本化 migration、FK/唯一约束、聚合、索引、事务与隔离 | 真实 PostgreSQL 集成测试、月报 SQL 与 `EXPLAIN ANALYZE` 查询计划 |
 | 安全与可靠性 | 密码/会话库、权限、CSRF、幂等、重试、限流、秘密管理 | 越权、重复提交、失败回滚与脱敏用例通过 |
-| 工程交付 | CI、容器/部署、环境配置、备份恢复、日志/指标 | 从干净环境复现、预览环境可验收、能定位失败请求 |
+| 工程交付 | CI、非 Docker 部署、单一 `DATABASE_URL` 环境配置、备份恢复、日志/指标 | 从干净环境复现、预览环境可验收、能定位失败请求 |
 | AI 应用工程 | 结构化输出、受限工具、可追溯事实、评测、安全/成本 | 30 条评测记录、错误分类、真实模型成本/延迟记录 |
 | 算法基础（并行） | 数组/哈希、二分/滑窗、树图遍历、堆与基础 DP；每周 1–2 题 | 自己解释复杂度和边界，隔周不看答案重做；不拿刷题数量代替产品验收 |
 
@@ -202,13 +207,15 @@ erDiagram
 - **异步任务**：仅在需要批量导入虚构 CSV 时，引入任务队列和 worker；验收“上传校验 → 任务状态/进度 → 失败记录可下载 → 重试不重复入账”，并设置文件大小、行数和并发上限。
 - **缓存**：只有月报查询的真实性能数据证明有瓶颈时才引入 Redis；验收“命中/未命中数值一致，新增/编辑/删除后缓存失效，跨用户键绝不串数据”。先比较 SQL 索引优化效果。
 - **客户端复用**：用熟悉的 iOS 技术调用同一套鉴权与账本 API；验收 Web 与 iOS 对金额、月份、错误码和权限的解释一致。
-- **进一步的后端主题**：限流与背压、连接池容量、容器资源、故障注入可按实际瓶颈各选一个实验；不为了练习而拆微服务或引入分布式事务。
+- **进一步的后端主题**：限流与背压、数据库连接容量、运行时资源、故障注入可按实际瓶颈各选一个实验；不为了练习而拆微服务或引入分布式事务。
 
 ## 10. 里程碑、工时与降级规则
 
+当前已验证基线是 NestJS/React 骨架、TypeORM 数据库接入、存活/就绪探针、API 32 个测试、Web 2 个测试及本机 PostgreSQL `SELECT 1` smoke；这只完成了 W1–4 的前置原型，不表示首个业务 Entity/Repository、显式 migration、账号或第一笔流水已经完成。下表仍是后续目标与验收成果。
+
 | 周次 | 约可用时间 | 验收成果 |
 |---|---:|---|
-| W1–4 | 20 小时 | NestJS 单体骨架和首个模块、数据库迁移、两名虚构用户、登录与第一笔流水；能解释 Guard/Pipe/Controller/Service/Repository 的端到端请求 |
+| W1–4 | 20 小时 | NestJS 单体骨架、`@nestjs/typeorm`/TypeORM/`pg` 数据层和首个模块，显式运行数据库 migration，建立两名虚构用户、登录与第一笔流水；能解释 Guard/Pipe/Controller/Service/Entity/Repository 的端到端请求 |
 | W5–10 | 30 小时 | 分类/流水/月报和 Web 主要页面；跨用户、金额、日期、空态及基本幂等测试；P0 可演示 |
 | W11–16 | 30 小时 | 幂等并发/事务故障/索引验证、CI、预览部署、日志、备份恢复演练；普通业务出错可定位 |
 | W17–22 | 30 小时 | 只读 AI 工具、事实卡片、安全边界、30 条评测与真实模型成本记录 |
@@ -223,9 +230,9 @@ erDiagram
 - [ ] 目录中只有个人项目代码与虚构数据；没有公司代码、生产配置、真实账单或密钥。
 - [ ] Web 可完成登录、分类、流水、月报；iOS 为可选后续扩展，不阻塞本版验收。
 - [ ] NestJS API 有清晰模块依赖、版本和错误契约；Guard/Pipe 不代替服务端逐对象鉴权、幂等和 OpenAPI 描述。
-- [ ] PostgreSQL 有迁移、约束、索引、事务测试；金额和月份口径可独立复核。
+- [ ] PostgreSQL 由 `@nestjs/typeorm` + TypeORM + `pg` 接入，只有一个 `DATABASE_URL`，明确 `synchronize: false`、`migrationsRun: false`；有版本化 migration、约束、索引、事务测试，金额和月份口径可独立复核。
 - [ ] 普通记账在模型不可用时仍正常；AI 只能读受授权聚合，回答可追溯并通过评测。
 - [ ] CI、启动/部署、脱敏观测、备份恢复演练有明确证据；未验证的项目不标记完成。
-- [ ] 开发记录能说明关键取舍：为何不用真实支付、为何选 NestJS 单体与 Express 适配器、何时才需要缓存/队列/RAG/MCP。
+- [ ] 开发记录能说明关键取舍：为何不用真实支付、为何选 NestJS 单体与 Express 适配器及 TypeORM、为何不用 Docker、何时才需要缓存/队列/RAG/MCP。
 
 本 PRD 是**以“虚构账本”为产品载体的学习规格**。若最终目标改为纯 AI 知识库或公司内部业务系统，必须先重新定义数据边界、用户权限和验收指标，不能把本文件中的财务数据结构直接照搬。
