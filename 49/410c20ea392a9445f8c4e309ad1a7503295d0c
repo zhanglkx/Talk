@@ -1,0 +1,258 @@
+apps/web/package.json
+  s_d79cbe6b07be2f::t_a8df9255ee6171 19,25
+apps/api/test/database.module.spec.ts
+  s_a5a9dccae6b724::t_548fdcac0a1791 1,3-6,8-14,30-32,34-37,39-54,76-77
+  s_32b0ee78f5f176::t_9dbab6e3961600 2,7,15-29,33,38,55-75
+apps/api/src/app.module.ts
+  s_5f05c47c213417::t_88b8765eddae64 13
+  s_523a1cc5c71572::t_c51be46cde45e3 2-4,6,8-12,14-20
+apps/api/test/health.spec.ts
+  s_523a1cc5c71572::t_8996ef6326da9f 5,8,18-25,34
+docs/PRD-fullstack-ai-ledger.md
+  s_a4995f8a572e86::t_49f6903c1763d4 85
+  s_65b20c23d089f5::t_2720e6979846b8 214-215
+  s_65b20c23d089f5::t_31f3f7ee05e4d3 69-70
+  s_a4995f8a572e86::t_af2353360dbc18 92
+  s_dfb4fc9ff2a89b::t_f338e03d2e3d56 3,6,77-78,86,88,105-106,149,173,177,184,196-197,199,210,218,236
+  s_dfb4fc9ff2a89b::t_df13e2fb03df0e 26,179,233
+  s_65b20c23d089f5::t_06a7e7e8ffefbc 8
+apps/api/src/internal/internal.module.ts
+  s_523a1cc5c71572::t_69eeb42fc1cc90 1-6
+apps/api/test/database.smoke.spec.ts
+  s_ca49acb316dde6::t_3f8ac54b8238a0 1-22
+apps/api/src/database/database.module.ts
+  s_a5a9dccae6b724::t_64d4834b146df1 2-5,8-19,23-32
+  s_32b0ee78f5f176::t_7b89c4677ac94f 6-7,20-22
+  s_32b0ee78f5f176::t_ac1950e37d9167 1
+apps/web/src/generated/api-types.ts
+  s_5f05c47c213417::t_238a805d1fd84a 23-38,47-60,89-121
+apps/api/src/config/validate-environment.ts
+  s_cdaac177546ada::t_8d1fc9408c83ff 1-2,4-18,27-30
+  s_3a9d6d8afc30a1::t_76a65df830c38c 3,19-26
+apps/api/src/database/database-readiness.service.ts
+  s_32b0ee78f5f176::t_ff51186357a5f6 14,20-41
+  s_a5a9dccae6b724::t_4245e3acc9529b 1-13,15-19,42-44
+docs/TECH-PLAN-fullstack-ai-ledger.md
+  s_65b20c23d089f5::t_a868fc15ac431a 81
+  s_65b20c23d089f5::t_0f558067d79b73 75
+  s_65b20c23d089f5::t_730cc09cccd2fb 72
+  s_65b20c23d089f5::t_52122236948c96 39
+  s_65b20c23d089f5::t_855fb78c2fb8e5 76
+  s_65b20c23d089f5::t_b325e1587df9d0 79
+  s_65b20c23d089f5::t_23e15810ddbdf0 190
+  s_65b20c23d089f5::t_9829266a5f18ea 215
+  s_65b20c23d089f5::t_5cf33b5a75f082 219
+  s_65b20c23d089f5::t_bb184e57871896 45-46
+  s_2674ae338b6e08::t_d5d8519644de39 8,18,23,66,128-135,137-140
+  s_65b20c23d089f5::t_a4c059323cfe56 12
+  s_65b20c23d089f5::t_719b6b342d1bae 73
+  s_65b20c23d089f5::t_eb410cf5cca07e 77
+  s_a4995f8a572e86::t_eab7c941b2c24c 70
+  s_65b20c23d089f5::t_c259138110742f 71
+  s_65b20c23d089f5::t_61f20226004f1a 198
+  s_65b20c23d089f5::t_d1ab8317794241 224
+  s_a4995f8a572e86::t_46fd13311f869a 30
+  s_65b20c23d089f5::t_0955d375ff228e 78
+  s_65b20c23d089f5::t_a8c9ee99ce47af 64
+  s_65b20c23d089f5::t_e8f874ee12b901 3-5
+  s_65b20c23d089f5::t_554f31ce5426de 199-201
+  s_65b20c23d089f5::t_d597b2a2bd0bd1 74
+  s_65b20c23d089f5::t_0e259ff7cdb3e4 243
+  s_dfb4fc9ff2a89b::t_f338e03d2e3d56 31,37,41,55,116,142,163,186,188-189,205,209,225,236,239
+apps/api/src/configure-app.ts
+  s_523a1cc5c71572::t_0b364642576aea 1,4-6
+apps/api/test/database-readiness.service.spec.ts
+  s_a5a9dccae6b724::t_1dd145e96ce4cc 6-10
+  s_32b0ee78f5f176::t_18b117675f66e2 94-116
+  s_a5a9dccae6b724::t_0fe5bf6bdd1179 1-5,11-93,117-140
+apps/api/test/openapi.spec.ts
+  s_751ec9d902b295::t_750bfd786eb066 35-50,52-58,60-77
+  s_751ec9d902b295::t_f2fa9ab85c233a 51,59
+apps/api/package.json
+  s_97458f8e14a59f::t_3935b133d3381b 7
+  s_cdaac177546ada::t_4d31f95fc979cb 17,21-22,24-25
+  s_97458f8e14a59f::t_796352fb7a8e8b 30-31
+  s_cdaac177546ada::t_de0efa554bd73a 33
+  s_ca49acb316dde6::t_39215b7cf01a40 12
+  s_d79cbe6b07be2f::t_a36d8281813051 8
+  s_d79cbe6b07be2f::t_a8df9255ee6171 32,36
+apps/api/nest-cli.json
+  s_97458f8e14a59f::t_2a59c6995157c7 6
+apps/api/vitest.smoke.config.ts
+  s_ca49acb316dde6::t_a7a399c1fb70e6 1-8
+patches/@nestjs__cli@12.0.8.patch
+  s_97458f8e14a59f::t_d8810eae96819c 1-13
+docs/superpowers/plans/2026-10-08-postgresql-integration.md
+  s_a4995f8a572e86::t_e75b45c2e2617f 1-8,10-54,57-64,66-68,70-300,302-522,524-525,527-528,530-531,533-535,537-569,571-593
+  s_a4995f8a572e86::t_3de7548d3240bf 523,526,529,532,536
+  s_a4995f8a572e86::t_ed97b189f681e8 301
+  s_a4995f8a572e86::t_a3c602df88011b 9,55-56,65,69,570
+apps/api/test/validate-environment.spec.ts
+  s_cdaac177546ada::t_ebb9d17902b0aa 1-4,14-29,42-61,64-69
+  s_cdaac177546ada::t_1627ba66422d5d 5-13
+  s_5a6f38277667ef::t_fdacd5830c47ba 62-63
+  s_3a9d6d8afc30a1::t_707c565151d80f 30-41
+apps/api/test/readiness.spec.ts
+  s_523a1cc5c71572::t_ee1879125296f6 1-55
+apps/api/src/internal/internal.controller.ts
+  s_751ec9d902b295::t_1515eb22bc6b39 24-28
+  s_523a1cc5c71572::t_9fa111700c0225 1,7-8,12-13,19-23,30-36
+  s_751ec9d902b295::t_e5c40220562be1 2-6,9-11,14-18,29
+package.json
+  s_d79cbe6b07be2f::t_e94e557a5ce803 4,7
+  s_a4995f8a572e86::t_e32bfe5f4922dc 6
+  s_d79cbe6b07be2f::t_97a719a08a7397 16-17
+  s_a4995f8a572e86::t_87f698e584c55b 18
+  s_d79cbe6b07be2f::t_ce5297e906396f 19
+pnpm-workspace.yaml
+  s_97458f8e14a59f::t_3e162d350ebe3b 6
+  s_97458f8e14a59f::t_d8810eae96819c 30-32
+  s_97458f8e14a59f::t_e6b73f8ba8c2e7 7-8,24-25,27-29
+  s_d79cbe6b07be2f::t_573494085ca5dd 4-5
+  s_97458f8e14a59f::t_b93f264e35f1a2 9-23
+  s_cdaac177546ada::t_4d31f95fc979cb 26
+.env.example
+  s_ca49acb316dde6::t_50c3f6b2466b2c 1-2
+.pnpmfile.cjs
+  s_97458f8e14a59f::t_b7e66e0f8b4ca2 1-9
+docs/superpowers/specs/2026-10-08-postgresql-integration-design.md
+  s_a4995f8a572e86::t_a73a9b5e2d0bdb 57
+  s_a4995f8a572e86::t_ed3452c16b8534 1-56,58-128
+apps/api/vitest.config.ts
+  s_751ec9d902b295::t_043f7273b0dd70 8
+  s_523a1cc5c71572::t_2d36f23819af17 6
+apps/api/test/setup-env.ts
+  s_523a1cc5c71572::t_b304593c42092c 1
+apps/api/src/main.ts
+  s_523a1cc5c71572::t_8b15554536414a 8
+docs/openapi.json
+  s_5f05c47c213417::t_238a805d1fd84a 24-60,86-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "49410c20ea392a9445f8c4e309ad1a7503295d0c",
+  "prompts": {},
+  "sessions": {
+    "s_2674ae338b6e08": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "43015812-eda3-4fd3-801a-5d3b4a004ecd",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_32b0ee78f5f176": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "a62e41d7-e527-43c8-8e2f-05ad66b27a99",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_3a9d6d8afc30a1": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "6bd4be04-f4a8-478c-a6fc-3e89d6bae287",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_523a1cc5c71572": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "b4123084-780a-4e89-9256-739d9f82912c",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_5a6f38277667ef": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "e8e47fef-f460-4388-954f-0d3abb7cc1f7",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_5f05c47c213417": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "dfe750c2-b692-441b-8594-e0f2c358fbde",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_65b20c23d089f5": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "5b15aa2c-8bc7-4d63-be74-77ef8d010d14",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_751ec9d902b295": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "5f431d37-be6b-49a3-ae2a-19d3376f819d",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_97458f8e14a59f": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "d6507cee-956b-4f0b-b5d8-aa645e457052",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_a4995f8a572e86": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "1f56d889-44b4-457e-8d84-84849363a997",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_a5a9dccae6b724": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "5e6a7a25-645f-4ce3-bbba-415f96e62b99",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_ca49acb316dde6": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "1e254a94-c0bf-4519-a239-512df8217e8d",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_cdaac177546ada": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "71996ee9-d290-437e-ae08-de51b143753d",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_d79cbe6b07be2f": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "edfd2f3c-0d50-490b-9d20-82783e28572a",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_dfb4fc9ff2a89b": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "a2e6fffc-e820-401a-9fe1-3bd73fb4ba1e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
