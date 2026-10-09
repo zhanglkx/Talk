@@ -1,0 +1,33 @@
+plan/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-46
+plan/M3/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-62
+plan/M2/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-62
+plan/M1/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-63
+plan/M7/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-61
+plan/M5/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-61
+plan/M6/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-61
+plan/M4/README.md
+  s_246f50b516b297::t_3d15b4372a0bc4 1-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "4056e657d1b084b749038a79a2c62cfdb801991d",
+  "prompts": {},
+  "sessions": {
+    "s_246f50b516b297": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_6cd85969zm13",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
