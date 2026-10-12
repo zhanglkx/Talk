@@ -1,0 +1,21 @@
+apps/api/tsconfig.json
+  s_e54dc915e658bd::t_b6564c701f73c5 16
+package.json
+  s_e54dc915e658bd::t_b6564c701f73c5 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "e34b3a191995ccccad4a6361ac74a2c6f4417c52",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
