@@ -1,0 +1,21 @@
+apps/api/src/database/connection-lifecycle.service.ts
+  s_442ff5e6873522::t_2d1744cf587b97 1-3,7,13-14,18,21-22,25,27-28
+apps/api/src/database/database-readiness.service.ts
+  s_442ff5e6873522::t_d67fee5010cbec 1-4,8,17-19,21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "6babe7f784a7cd694b684de29b1dc2ce1be7cbad",
+  "prompts": {},
+  "sessions": {
+    "s_442ff5e6873522": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6d245fa6-aa74-439e-b1dc-f1c4e0fe7d12",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
