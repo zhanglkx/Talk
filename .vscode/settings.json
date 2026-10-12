@@ -1,0 +1,25 @@
+{
+  "search.exclude": {
+    ".git": true,
+    "dist": true,
+    "node_modules": true,
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    ".vscode": false,
+    ".env": true,
+    "**/docs": true,
+    ".DS_Store": true,
+    "pnpm-workspace.yaml": true,
+    "pnpm-lock.yaml": true,
+    ".gitignore": true
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    ".vscode": false,
+    ".env": true,
+    ".DS_Store": true
+  }
+}
