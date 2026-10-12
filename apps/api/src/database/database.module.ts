@@ -2,6 +2,7 @@ import { Logger, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DatabaseReadinessService } from './database-readiness.service.js'
+import { ConnectionLifecycleService } from './connection-lifecycle.service.js'
 
 const logger = new Logger('DatabaseModule')
 
@@ -35,7 +36,7 @@ const logger = new Logger('DatabaseModule')
       }),
     }),
   ],
-  providers: [DatabaseReadinessService],
-  exports: [DatabaseReadinessService],
+  providers: [DatabaseReadinessService, ConnectionLifecycleService],
+  exports: [DatabaseReadinessService, ConnectionLifecycleService],
 })
 export class DatabaseModule {}
