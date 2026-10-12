@@ -1,31 +1,31 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+import { Injectable } from '@nestjs/common'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { DataSource } from 'typeorm'
 
 @Injectable()
 export class ConnectionLifecycleService {
-  private initializationPromise: Promise<void> | undefined;
+  private initializationPromise: Promise<void> | undefined
 
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async ensureConnected(): Promise<void> {
     if (this.initializationPromise) {
-      await this.initializationPromise;
-      return;
+      await this.initializationPromise
+      return
     }
 
     if (this.dataSource.isInitialized) {
-      return;
+      return
     }
 
-    const initilaizaionPromise = this.dataSource.initialize().then(() => undefined);
-    this.initializationPromise = initilaizaionPromise;
+    const initializationPromise = this.dataSource.initialize().then(() => undefined)
+    this.initializationPromise = initializationPromise
 
     try {
-      await initilaizaionPromise;
+      await initializationPromise
     } finally {
-      if (this.initializationPromise === initilaizaionPromise) {
-        this.initializationPromise = undefined;
+      if (this.initializationPromise === initializationPromise) {
+        this.initializationPromise = undefined
       }
     }
   }
