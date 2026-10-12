@@ -1,0 +1,18 @@
+apps/api/src/database/database-readiness.service.ts
+  h_72b468a2b9f972 1-4,8-9,12-13,18-20,22-23
+apps/api/src/database/connection-lifecycle.service.ts
+  h_72b468a2b9f972 1-32
+apps/api/src/database/database.module.ts
+  h_72b468a2b9f972 5,39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "c79107e5910bca8b636f33e3f89ea83c78e18711",
+  "prompts": {},
+  "humans": {
+    "h_72b468a2b9f972": {
+      "author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
