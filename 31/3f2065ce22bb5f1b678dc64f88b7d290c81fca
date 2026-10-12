@@ -1,0 +1,25 @@
+.cursor/rules/step-gate.mdc
+  s_442ff5e6873522::t_ac758ca4960623 1-16
+docs/plan/M1/README.md
+  s_442ff5e6873522::t_79f5ce54139e96 45-52
+apps/api/src/database/database.module.ts
+  s_442ff5e6873522::t_dfe26ab114515a 10,15,17,19,21,23,25,27,32
+.cursor/rules/explain-for-beginner.mdc
+  s_442ff5e6873522::t_ffcbeb58189321 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "313f2065ce22bb5f1b678dc64f88b7d290c81fca",
+  "prompts": {},
+  "sessions": {
+    "s_442ff5e6873522": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6d245fa6-aa74-439e-b1dc-f1c4e0fe7d12",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
