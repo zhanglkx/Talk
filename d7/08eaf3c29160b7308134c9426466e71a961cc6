@@ -1,0 +1,21 @@
+docs/plan/M1/README.md
+  s_69a2aa2f4247c1::t_6eed964b64bdb7 4,61-62,143,147-160,163
+  s_69a2aa2f4247c1::t_31260bb0c66d54 132,134,137-138,141,145-146
+  s_69a2aa2f4247c1::t_70f7493c28814c 60,124,130-131,133,135-136,139-140,142,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "d708eaf3c29160b7308134c9426466e71a961cc6",
+  "prompts": {},
+  "sessions": {
+    "s_69a2aa2f4247c1": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f802b577-56b3-4df5-8bc0-05ca7df79d42",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
