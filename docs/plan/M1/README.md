@@ -123,9 +123,11 @@ M1-S07 验收证据（2026-10-13）：用户完成 `apps/api/src/database/cli-da
 
 M1-S08 测试准备记录（2026-10-13）：新增 `apps/api/test/user.entity.spec.ts` 的 3 条测试，使用 TypeORM 离线 metadata 构建检查字段及唯一约束，并检查共享配置与 CLI 的实体注册；拦截 `initialize`，不连接数据库。待实现文件为 `apps/api/src/modules/users/user.entity.ts`，命名导出 `User`；属性约定为 `id`、`username`、`passwordHash`、`createdAt`，后两者分别映射 `password_hash`、`created_at`。将现有 CLI 测试的空实体列表断言改为与共享配置一致。运行 `pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts`：现有 CLI 10 条通过，新增 3 条在实体文件缺失处失败，尚未执行到元数据断言；不是实体映射已通过的证据。测试辅助函数类型收窄为构造函数后，`pnpm typecheck` 通过。未修改业务代码，本步等待用户完成实体及共享注册；完整 API 与 contracts 验收留到实现后。
 
+M1-S08 实体验证更新（2026-10-13）：用户已完成 `User` 实体。再次运行 `pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts`：12 条通过、1 条失败；字段映射和 username 唯一约束的离线元数据检查通过，现有 CLI 10 条通过。唯一失败是共享配置仍为 `entities: []`，没有注册 User；等待用户在 `database-options.ts` 中导入实体并更新 entities。未改业务代码，未连接数据库；完整 API、类型检查和离线 contracts 的最终验收留到注册后。本步保持进行中，元数据检查不等于真实数据库约束已经生效。
+
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S07。S07 的 `pnpm --filter @ledger/api test` 为 8 个文件、21 个测试通过，`pnpm typecheck` 通过；编译后 CLI 入口可由 TypeORM 实际加载器离线加载，未执行迁移或真实连接。S08 已准备测试，当前 3 条失败于实体文件缺失，等待用户手写业务实现，尚未完成。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S07。S07 的 `pnpm --filter @ledger/api test` 为 8 个文件、21 个测试通过，`pnpm typecheck` 通过；编译后 CLI 入口可由 TypeORM 实际加载器离线加载，未执行迁移或真实连接。S08 实体映射已通过离线测试，目前针对性测试 12 条通过、1 条失败，等待用户完成共享实体注册，尚未完成。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
