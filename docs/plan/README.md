@@ -43,4 +43,4 @@ M1 认证与数据库基础 → M2 分类／可靠创建／列表 → M3 编辑�
 
 通用约束：只有虚构数据；NestJS/React 单体、本机 PostgreSQL、TypeORM、单一 DATABASE_URL；synchronize:false、migrationsRun:false；无 Docker、Redis 或新业务框架。金额分字符串，月份固定上海时区。文档中的目标文件、命令与验收不是已有实现。
 
-[产品需求](../docs/PRD-fullstack-ai-ledger.md) · [总技术方案](../docs/TECH-PLAN-fullstack-ai-ledger.md)
+[产品需求](../PRD-fullstack-ai-ledger.md) · [总技术方案](../TECH-PLAN-fullstack-ai-ledger.md)

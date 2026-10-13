@@ -172,7 +172,7 @@ M1-S09 最终验收证据（2026-10-13）：用户已完成 users migration 及�
 
 [总阅读索引](../README.md) · [总学习计划](../2026-10-09-%E4%B8%AA%E4%BA%BA%E8%B4%A6%E6%9C%AC%E5%85%A8%E6%A0%88%E5%AD%A6%E4%B9%A0%E8%AE%A1%E5%88%92.md)
 
-[产品需求](../../docs/PRD-fullstack-ai-ledger.md) · [总技术方案](../../docs/TECH-PLAN-fullstack-ai-ledger.md)
+[产品需求](../../PRD-fullstack-ai-ledger.md) · [总技术方案](../../TECH-PLAN-fullstack-ai-ledger.md)
 
 重点依据：PRD §4～§6、§8；技术方案 §2～§5、§9；数据库与 AppModule 当前代码。
 

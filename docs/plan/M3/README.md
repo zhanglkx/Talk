@@ -79,7 +79,7 @@ M2本人分类、可靠创建、月份分页、基础事务/幂等、Web列表�
 
 [总阅读索引](../README.md) · [总学习计划](../2026-10-09-%E4%B8%AA%E4%BA%BA%E8%B4%A6%E6%9C%AC%E5%85%A8%E6%A0%88%E5%AD%A6%E4%B9%A0%E8%AE%A1%E5%88%92.md)
 
-[产品需求](../../docs/PRD-fullstack-ai-ledger.md) · [总技术方案](../../docs/TECH-PLAN-fullstack-ai-ledger.md)
+[产品需求](../../PRD-fullstack-ai-ledger.md) · [总技术方案](../../TECH-PLAN-fullstack-ai-ledger.md)
 
 重点依据：PRD §3、§5～§6；技术方案 §4～§6、§9；M2 创建事务与首次响应设计。
 
