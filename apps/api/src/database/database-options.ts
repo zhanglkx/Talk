@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common'
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm'
 import { User } from '@/modules/users/user.entity.js'
+import { CreateUsers1791849600000 } from '@/database/migrations/1791849600000-create-users.js'
 
 // 只描述怎么连。不创建连接，也不读取环境变量；调用方把地址传进来。
 const logger = new Logger('DatabaseModule')
@@ -18,6 +19,8 @@ export function createDatabaseOptions(databaseUrl: string) {
     migrationsRun: false,
     // 还没有业务表需要映射。
     entities: [User],
+    // 需要执行的数据库迁移脚本。
+    migrations: [CreateUsers1791849600000],
     // 3 秒内连不上就失败，请求不会一直挂着。
     connectTimeoutMS: 3_000,
     // 连接池是预先打开、反复借用的一组连接。这里只记发生了错误，不写连接串，避免密码进日志。
