@@ -4,4 +4,4 @@
 - 只用虚构数据：代码、测试、seed、文档、日志里不出现真实账单、真实账号或真实连接串。
 - 七个阶段依次推进：M1 认证与数据库 → M2 分类与流水 → M3 生命周期与月报 → M4 质量门 → M5 交付与观测 → M6 只读 AI → M7 评测与交付。前置阶段未全部通过不开始下一阶段，不按日期跳过。
 - 进度只看 `docs/plan/<阶段>/README.md` 的「当前步骤」和验收追踪表（总览 `docs/plan/README.md`）。动手前先读当前阶段 README。
-- PRD（`docs/PRD-fullstack-ai-ledger.md`）、技术方案（`docs/TECH-PLAN-fullstack-ai-ledger.md`）和各阶段 Word 文件写的是目标。其中的接口、表、命令和验收不等于已实现，先对照代码确认；具体任务以阶段文档为准。
+- PRD（`docs/PRD-fullstack-ai-ledger.md`）、技术方案（`docs/TECH-PLAN-fullstack-ai-ledger.md`）和各阶段三份文档（`01-PRD.md`、`02-技术方案.md`、`03-学习与执行计划.md`）写的是目标。其中的接口、表、命令和验收不等于已实现，先对照代码确认；具体任务以阶段文档为准。
