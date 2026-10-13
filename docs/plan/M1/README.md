@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（当前步骤 M1-S04）。
+- 状态：**进行中**（当前步骤 M1-S08）。
 - 基线：`49410c2`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -46,12 +46,18 @@
 
 一次只展开这一步。验收通过后直接把状态改为 done 并记下验收证据，再写出下一步的计划、动作、注意事项和验收；未通过就停在本步。
 
+执行分工：业务代码由用户手写；助手生成测试、执行验证并维护证据。助手不修改业务代码，也不为回归验证临时改动业务实现。
+
 | 编号 | 内容 | 状态 |
 |---|---|---|
 | M1-S01 | 共享连接生命周期 `ensureConnected`：并发只连接一次，失败后可重试，成功后不重复初始化，不执行 migration。 | done |
 | M1-S02 | 应用关闭时销毁这一份 `DataSource`，只销毁一次；关闭过程不再连接。 | done |
 | M1-S03 | 抽出无副作用的数据库配置，供 Nest 和以后的 CLI 共用。本步不创建 CLI 进程。 | done |
-| M1-S04 | CLI 用的 `DataSource` 复用这份配置：创建时不连接，未连接时关闭不调用 `destroy`。 | 进行中 |
+| M1-S04 | CLI 用的 `DataSource` 复用这份配置：创建时不连接，未连接时关闭不调用 `destroy`。 | done |
+| M1-S05 | 应用启动不连接数据库：`initialize` 和 `ensureConnected` 都不被调用。 | done |
+| M1-S06 | 用不可达的本机数据库地址运行实际 contracts 命令，验证离线契约生成。 | done |
+| M1-S07 | 为 TypeORM CLI 提供可加载的 DataSource 入口，加载时不连接数据库。 | done |
+| M1-S08 | 定义 users Entity，并让应用与 CLI 的共享配置注册同一实体；不自动建表。 | 进行中（测试已准备，等待用户实现） |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -59,24 +65,67 @@ M1-S02 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 4 个
 
 M1-S03 验收证据（2026-10-13）：先用空函数看到两条断言失败（没有返回传入的 URL；连接池错误没有记下固定日志）。实现后 `pnpm --filter @ledger/api test` 为 5 个文件、9 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/database-options.spec.ts`。未连接真实数据库，未创建 CLI 进程。
 
-### M1-S04 详情
+M1-S04 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 6 个文件、11 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/data-source.spec.ts`。临时拿掉「没连上就返回」后，关闭测试抛出 `CannotExecuteNotConnectedError`；恢复后全套通过。未连接真实数据库，未加 npm 脚本。
 
-- 来源：任务卡 M1-T02 的 CLI `DataSource`。真正执行 migration 的命令留到建表那一步。M1-T01 基线回归再往后拆。
-- 计划：新增一个给命令行用的连接对象。它调用 `createDatabaseOptions`，所以和 Nest 用同一份配置。创建时不连接。Nest 模块里不注册它，避免运行中的应用再多出一套连接池。不建表，不加 npm 脚本。
+M1-S05 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 7 个文件、12 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/database-startup.spec.ts`，使用真实 `AppModule`，不替换 `DatabaseModule` 或 `DataSource`；在模块创建前监听两个连接入口，断言 `app.init()` 和 `close()` 均不调用 `initialize` 或 `ensureConnected`。监听方法一旦被调用立即抛错，避免真实连接。临时将 `manualInitialization` 改为 `false` 并限制重试为一次后，测试按预期失败；恢复配置后单测及全套通过。生产配置和 `generate-openapi.ts` 均未保留修改，未连接真实数据库。此证据不等于实际 contracts 命令已完成离线验收。
+
+M1-S06 验收证据（2026-10-13）：新增 `apps/api/test/contracts.spec.ts`，先分配并关闭临时 loopback 端口，确认连接返回 `ECONNREFUSED`；仅在子进程中注入该端口的 `DATABASE_URL`，执行真实 `pnpm contracts`，退出码为 0；命令结束后再次确认连接被拒绝。测试检查 OpenAPI 版本、health/ready 路径和 503 响应，以及生成 Web 类型中的路径和操作名。首次运行因错误假设标准输出包含脚本名而失败，修正为生成工具实际报告的产物路径后通过；这不是业务回归失败证据。最终 `pnpm --filter @ledger/api test` 为 8 个文件、13 个测试通过，`pnpm typecheck` 通过；两份生成文件均无 Git 差异。未改业务代码或 `.env`，未关闭 PostgreSQL，未使用真实数据库账号。
+
+M1-S07 验收证据（2026-10-13）：用户完成 `apps/api/src/database/cli-data-source.ts`；助手在现有 `apps/api/test/data-source.spec.ts` 中新增 8 条测试，覆盖唯一 DataSource 导出、重复导入复用同一对象、调用共享工厂一次、加载不调用 `initialize`，以及缺失、空白、非法 URL、错误协议、缺少库名和缺少主机的配置拒绝。每条入口测试重置模块缓存并恢复环境变量，连接方法被拦截；针对性测试共 10 条通过。完整 `pnpm --filter @ledger/api test` 为 8 个文件、21 个测试通过，`pnpm typecheck` 通过。使用本次 contracts 构建产物，以锁定 TypeORM 版本的 `CommandUtils.loadDataSource` 加载 `dist/database/cli-data-source.js`，验证返回未连接的 DataSource，配置保留禁止同步和自动迁移；子进程内拦截 `initialize`，命令退出码为 0。未修改业务实现、未执行迁移、未连接真实数据库；生成文件无 Git 差异。此证据不代表业务表已存在或 migration 已通过。
+
+### M1-S05 详情
+
+- 来源：任务卡 M1-T01 里「离线也能生成契约」这一半。还没有 Repository，所以「第一次查库不必先访问 ready」留到有仓储再写。
+- 计划：证明应用启动本身不连接数据库。生成 OpenAPI 会创建 `AppModule` 并 `init`，再关掉。如果启动就去 `initialize`，数据库不在线时，生成契约会失败，进程也起不来。不建表，不做登录。
 - 动作：
-  1. 新增 `apps/api/src/database/data-source.ts`，导出 `createCliDataSource(databaseUrl: string)`。内部 `new DataSource(createDatabaseOptions(databaseUrl))`，不调用 `initialize`。
-  2. 同文件导出 `closeCliDataSource(dataSource)`。只有 `isInitialized` 为真才 `destroy()`；没连上就直接返回。
-  3. 文件顶层不要 `new DataSource()`。`DatabaseModule` 不导入这个文件。
-  4. 用假 URL 写测试：返回对象的 `options.url` 是传入的地址，`synchronize` 和 `migrationsRun` 为 false，`isInitialized` 为 false，且没有调用 `initialize`。未连接时 `closeCliDataSource` 不调用 `destroy`。
+  1. 新增测试：用真实的 `AppModule` 创建应用并 `init`，不要替换 `DatabaseModule`。
+  2. 在 `init` 之前监听 `DataSource.prototype.initialize` 和 `ConnectionLifecycleService.prototype.ensureConnected`。
+  3. 断言这两个方法都没有被调用，然后 `close`。
 - 注意事项：
-  - TypeORM 的 `destroy()` 在还没连上时会抛 `CannotExecuteNotConnectedError`。关闭函数如果无条件 destroy，会把「没连上」盖成另一个错误。
-  - 构造函数会准备驱动对象，但不会打开连接。测试不要调用 `initialize`，否则会去连假地址。
-  - 这是另一个进程里用的对象。不要把它放进 `DatabaseModule` 的 providers。
-- 验收：`pnpm --filter @ledger/api test` 和 `pnpm typecheck` 通过，且测试包含：假 URL 出现在 CLI `DataSource` 的 options 里；创建后 `isInitialized` 为 false 且没有 `initialize`；未连接时关闭不调用 `destroy`。
+  - 不要调用 `initialize`。测试环境里的地址不一定连得上，一调用就会真的去连。
+  - 不要用假的 `DataSource` 换掉模块里那一个。换掉之后，测到的就不是启动时 TypeORM 实际拿到的配置。
+  - 生成脚本 `generate-openapi.ts` 本步不改。它已经是 `create`、`init`、`close`；本步只把「init 不连库」锁进测试。
+- 验收：`pnpm --filter @ledger/api test` 和 `pnpm typecheck` 通过，且测试包含：`app.init()` 期间 `initialize` 和 `ensureConnected` 都没有被调用。
+
+### M1-S06 详情
+
+- 来源：任务卡 M1-T01 的「离线 contracts 可生成」，承接 S05 的启动回归测试。
+- 计划：运行仓库实际的契约生成链路，证明数据库不可达时仍能生成 OpenAPI 和 Web 类型。本步不创建 migration、Entity 或账号。
+- 动作：
+  1. 核对根目录 `contracts` 脚本及生成脚本的现有输入、输出，确认生成产物没有需要保留的手工修改。
+  2. 为这一次命令注入格式合法、不可达的本机 `DATABASE_URL`，运行 `pnpm contracts`；不修改 `.env`，不关闭用户的 PostgreSQL。
+  3. 检查退出码和生成产物，再运行 `pnpm typecheck` 与 `pnpm --filter @ledger/api test`，记录命令及结果。
+- 注意事项：只覆盖当前命令的环境变量，不使用真实账号或连接串；不可达地址必须经确认，不把当前 `ledger_test` 默认地址直接视为离线。不得放宽环境校验或打开自动建表/迁移，也不为导出契约替换数据库模块。首次 Repository 调用无需 ready 的验证仍等有仓储后再做。
+- 验收：数据库不可达时实际 `pnpm contracts` 退出码为 0，OpenAPI 和 Web 类型成功生成，类型检查及 API 测试通过；生成差异只包含可解释的契约变化。已通过，证据见上。
+- 测试运行说明：此测试会调用实际构建及生成命令，重写两份生成产物；运行前应确认生成文件没有需保留的手工修改。它不替代未来真实数据库或 Repository 测试。
+
+### M1-S07 详情
+
+- 来源：M1-T02 的 CLI 配置与技术方案的独立 CLI DataSource；S04 只提供工厂，还不是 TypeORM CLI 可直接加载的入口。
+- 计划：提供独立 CLI 入口，读取同一个 `DATABASE_URL` 并复用 `createCliDataSource`；加载入口时不连接。本步不写 migration、不执行迁移、不增加第二套运行连接池。
+- 动作：
+  1. 助手先在现有 CLI 测试附近补测试：加载入口后只导出一份 `DataSource`、复用共享配置、没有调用 `initialize`；缺少或非法 `DATABASE_URL` 时明确失败。
+  2. 用户手写 CLI 入口业务代码。入口与无副作用工厂保持分离，复用现有环境校验，不把环境读取塞进共享配置函数。
+  3. 助手运行针对性测试、完整 API 测试和 `pnpm typecheck`；失败时报告原因，不代写业务实现。
+- 注意事项：兼容当前 ESM/编译输出及锁定的 TypeORM CLI；测试用虚构地址并拦截连接入口，不执行真实连接。保持 `synchronize:false`、`migrationsRun:false`。显式运行迁移时的连接与 finally 关闭在后续命令步骤验证，本步不把模块加载等同于迁移已可用。
+- 验收：CLI 加载入口可取得唯一 `DataSource`，配置来自共享工厂；模块加载不调用 `initialize`，缺少或非法数据库配置被拒绝，API 测试与类型检查通过。已通过，证据见上。
+
+### M1-S08 详情
+
+- 来源：M1-T03 的 users/sessions migration 与实体；先完成 users 的映射这一小步，sessions 和真实迁移后续单独验收。
+- 计划：定义 `User` 实体映射 users 表，并让应用与 CLI 共用实体注册；只描述表结构，不创建或修改数据库表。
+- 动作：
+  1. 助手先补离线元数据测试：users 表名、UUID 主键、username 的 VARCHAR(32) 与唯一约束、password_hash 的 TEXT 非空、created_at 的 timestamptz 非空，以及共享配置中的实体注册。
+  2. 用户在技术方案指定的 users 模块中手写实体，并更新共享数据库配置的 entities；字段类型显式声明，不依赖测试编译器推断装饰器类型。
+  3. 助手运行针对性测试、完整 API 测试和 `pnpm typecheck`，确认启动和离线 contracts 回归测试仍通过。
+- 注意事项：不打开 synchronize 或 migrationsRun，不增加运行 DataSource，不编写 Repository、seed 或登录。不把元数据上的唯一标记视为真实数据库约束已生效；建表、重复迁移和约束验证必须留给专用测试库。UUID 生成策略保持与后续 migration 一致，避免无必要的数据库扩展。
+- 验收：元数据及共享注册符合字段要求，API 测试和类型检查通过，应用启动与契约生成保持离线可用。尚未执行，不记为通过；M1-R01 仍未验证。
+
+M1-S08 测试准备记录（2026-10-13）：新增 `apps/api/test/user.entity.spec.ts` 的 3 条测试，使用 TypeORM 离线 metadata 构建检查字段及唯一约束，并检查共享配置与 CLI 的实体注册；拦截 `initialize`，不连接数据库。待实现文件为 `apps/api/src/modules/users/user.entity.ts`，命名导出 `User`；属性约定为 `id`、`username`、`passwordHash`、`createdAt`，后两者分别映射 `password_hash`、`created_at`。将现有 CLI 测试的空实体列表断言改为与共享配置一致。运行 `pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts`：现有 CLI 10 条通过，新增 3 条在实体文件缺失处失败，尚未执行到元数据断言；不是实体映射已通过的证据。测试辅助函数类型收窄为构造函数后，`pnpm typecheck` 通过。未修改业务代码，本步等待用户完成实体及共享注册；完整 API 与 contracts 验收留到实现后。
 
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01（3 文件 / 6 测试）、M1-S02（4 文件 / 7 测试）和 M1-S03（5 文件 / 9 测试）。每次都跑了 `pnpm --filter @ledger/api test` 与 `pnpm typecheck`，未连接真实数据库。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S07。S07 的 `pnpm --filter @ledger/api test` 为 8 个文件、21 个测试通过，`pnpm typecheck` 通过；编译后 CLI 入口可由 TypeORM 实际加载器离线加载，未执行迁移或真实连接。S08 已准备测试，当前 3 条失败于实体文件缺失，等待用户手写业务实现，尚未完成。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
