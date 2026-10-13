@@ -1,0 +1,60 @@
+apps/api/src/database/connection-lifecycle.service.ts
+  s_442ff5e6873522::t_b1e2b94222b0e6 5,8,14,20,25,32
+.kiro/steering/step-gate.md
+  s_d7457d4a2badd8::t_70c7f9090e33ca 1-7
+docs/plan/M3/README.md
+  s_d7457d4a2badd8::t_5b66622e70d74b 44-67
+docs/plan/M2/README.md
+  s_d7457d4a2badd8::t_b24e7e656134e1 44-70
+apps/api/src/database/database.module.ts
+  s_442ff5e6873522::t_b8a5f9cc073927 7
+  s_442ff5e6873522::t_6ed81c02e5c841 40
+  h_72b468a2b9f972 1-5,8,16,18,31
+docs/plan/M5/README.md
+  s_d7457d4a2badd8::t_4bba38e633dd17 43-68
+apps/api/src/database/database-readiness.service.ts
+  s_442ff5e6873522::t_df3bce5aaf4035 18
+  s_442ff5e6873522::t_34d638c6057c87 6
+  h_72b468a2b9f972 20-21
+docs/plan/M4/README.md
+  s_d7457d4a2badd8::t_be67f3b1f223ad 43-67
+docs/plan/M6/README.md
+  s_d7457d4a2badd8::t_8f946a151b330d 43-67
+docs/plan/M7/README.md
+  s_d7457d4a2badd8::t_253924447c1800 43-68
+docs/plan/M1/README.md
+  s_d7457d4a2badd8::t_ecd8d7db93fa7f 4
+  s_d7457d4a2badd8::t_7615822a7f5a98 77
+  s_d7457d4a2badd8::t_6dbc904bff8687 47,53-73
+docs/plan/README.md
+  s_d7457d4a2badd8::t_e6e19729e01358 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "f5b3d76fab660aa660498e81420a5c25914d7164",
+  "prompts": {},
+  "humans": {
+    "h_72b468a2b9f972": {
+      "author": "likezhang <likezhang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_442ff5e6873522": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6d245fa6-aa74-439e-b1dc-f1c4e0fe7d12",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_d7457d4a2badd8": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "62b16e40-2c3f-4d8c-b22d-34e7b77b4ac7",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
