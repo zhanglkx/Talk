@@ -1,0 +1,26 @@
+apps/api/src/database/database-options.ts
+  h_67f487dacd1d7d 3,20
+apps/api/src/modules/users/user.entity.ts
+  s_e54dc915e658bd::t_a30c48f9a48d25 1-2,4-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "91ab46a464358736516fd995bcc722bdcb9c0b7a",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
