@@ -1,0 +1,36 @@
+# 技术约束与命令实情
+
+现状核对于 2026-10-13（M1-S07 开始前）。命令和版本以各 `package.json` 与代码为准；README、计划文档里的命令可能滞后，或只是目标。
+
+## 硬约束
+
+- NestJS 单体（Express 适配器）+ React/Vite + 本机 PostgreSQL + TypeORM/`pg`。不引入 Docker/Docker Compose、Redis、第二套 ORM、GraphQL、微服务或第二套 Node 框架。输入校验按技术方案用 Zod Standard Schema（尚未接入），不另选校验库。
+- 数据库只认一个 `DATABASE_URL`，必须带库名（`validateEnvironment` 校验），不拆成 host/port/user/password。
+- `synchronize: false`、`migrationsRun: false`、`manualInitialization: true`：应用启动不连库、不建表、不迁移。表结构只能通过版本化 migration 的显式命令修改。
+- Node 26.11.1、pnpm 12.10.1 精确锁定（engines + volta），应用依赖写精确版本。安装策略在 `pnpm-workspace.yaml`（allowBuilds、minimumReleaseAgeExclude、packageExtensions、patchedDependencies）和 `.pnpmfile.cjs`。
+- 项目用 TypeScript 7.0.2；`openapi-typescript` 被固定使用 TypeScript 6.0.3；`@nestjs/cli` 打了补丁，不再优先从项目目录解析 TypeScript（`patches/`）。升级这三者任一个时，一并核对上述配置。
+
+## 命令实情
+
+- 根目录 `pnpm test` 只跑 Web；API 测试是 `pnpm --filter @ledger/api test`。所以 `pnpm check` 通过不代表 API 测试通过。
+- 目前没有 `test:db`、migration、seed 脚本；README 里的 `test:db` 已过时。
+- API 的 `dev` 用 SWC 且带 `--no-type-check`，类型错误只在 `pnpm typecheck` 或 `build` 时暴露。
+- `pnpm contracts`：构建 API → 运行 `dist/generate-openapi.js` 写 `docs/openapi.json` → 生成 `apps/web/src/generated/api-types.ts`。不需要数据库在线，但需要格式合法的 `DATABASE_URL`。
+- `apps/api/test/contracts.spec.ts` 会执行真实的 `pnpm contracts`，重写上面两份生成文件；跑完用 `git status` 确认没有意外差异。
+- API 测试在未设置 `DATABASE_URL` 时用 `apps/api/test/setup-env.ts` 的默认值（`localhost:5432/ledger_test`），本机 PostgreSQL 在线时可能真的连上。不该连库的测试要拦截 `DataSource.prototype.initialize` 和 `ConnectionLifecycleService.prototype.ensureConnected`。
+
+## 运行时约定
+
+- 全局前缀 `/api/v1`。`GET /internal/ready` 不带前缀，Vite 只代理 `/api`，ready 不对公网。
+- health 不查库；ready 执行 `SELECT 1`，失败返回 503 `{ "status": "not_ready" }`。
+- 当前的连接入口是 `ConnectionLifecycleService.ensureConnected()`：并发只连一次，失败后可重试。
+- `.env` 在仓库根，API 的 `ConfigModule` 以 `../../.env` 读取。
+- 日志不写连接串、密码、Session Cookie、AI 原始问题、完整请求/响应或账本备注。
+
+## 业务不变量（来自技术方案，做到对应阶段时遵守）
+
+- 金额是「分」的十进制整数字符串 `amountMinor`，全程不经 `Number`，不用浮点乘 100；`BIGINT`/`SUM` 保持字符串或用 `BigInt`。币种 MVP 固定 CNY。
+- 月份边界按 `Asia/Shanghai` 算 `[月初, 次月初)` 再转 UTC；`occurredAt` 带时区偏移，存 `timestamptz`。
+- 身份只来自服务端会话；body、query、AI 传入的 `userId` 不能用于授权。别人的对象返回 404；列表和报表 SQL 先约束 `user_id`。
+- 事务内所有查询共用同一个 `EntityManager` 或 `QueryRunner`，不回退到全局 Repository 或 `DataSource`。
+- 错误响应形状为 `error.code/message/requestId/fields`。改 API 契约时同步更新 Controller/Schema、生成的 OpenAPI 和 Web 类型。
