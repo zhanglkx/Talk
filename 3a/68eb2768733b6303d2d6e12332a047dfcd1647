@@ -1,0 +1,25 @@
+apps/web/vite.config.ts
+  s_41288e275aad62::t_b2bd0a14fd1a0c 6-10
+apps/web/src/main.tsx
+  s_41288e275aad62::t_b2bd0a14fd1a0c 2
+apps/web/src/App.tsx
+  s_41288e275aad62::t_b2bd0a14fd1a0c 2
+apps/web/tsconfig.json
+  s_41288e275aad62::t_b2bd0a14fd1a0c 6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "3a68eb2768733b6303d2d6e12332a047dfcd1647",
+  "prompts": {},
+  "sessions": {
+    "s_41288e275aad62": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "24a24af3-2a6c-4061-a51c-27d003d26461",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
