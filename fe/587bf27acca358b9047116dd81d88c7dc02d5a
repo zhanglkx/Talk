@@ -1,0 +1,88 @@
+.kiro/steering/product.md
+  s_e35f8ecea54d82::t_7a71400b2defac 1-7
+apps/api/src/database/cli-data-source.ts
+  s_bb13b9ad374aae::t_49e2666aec40c6 1-8,11,13-14
+  h_72b468a2b9f972 9-10,12,15
+apps/api/test/user.entity.spec.ts
+  h_72b468a2b9f972 79
+  s_bb13b9ad374aae::t_c4f25e1cd93984 16
+  s_bb13b9ad374aae::t_3468a7399fc725 8
+  s_bb13b9ad374aae::t_3ffa84b57d68ca 1-7,9-15,17-78,80-105
+.kiro/steering/collaboration.md
+  s_e35f8ecea54d82::t_dca2b4ca82fba4 1-21
+.kiro/steering/tech.md
+  s_e35f8ecea54d82::t_f58439b0e5f96d 3
+  s_e35f8ecea54d82::t_9e9eab0c7d906e 1-2,4-36
+docs/plan/M1/README.md
+  s_8bb2ad194c0646::t_be26f695c4d441 56
+  s_bb13b9ad374aae::t_3c3538b0085335 57,70,73,89-98
+  s_bb13b9ad374aae::t_d130fd9200280d 4,59,74,111-122
+  s_bb13b9ad374aae::t_a75073f9d586f9 49-50,58,71-72,99-110
+  s_bb13b9ad374aae::t_3ce8a5a5c95683 60,124,128
+  s_8bb2ad194c0646::t_44a891018d41f1 68,76-79,81-83,85-88
+apps/api/test/data-source.spec.ts
+  s_bb13b9ad374aae::t_945f545fe43e00 2-3,10,34-61,63-75,78-88,90-103
+  h_72b468a2b9f972 62,89,104
+  s_bb13b9ad374aae::t_3ffa84b57d68ca 76-77
+  s_8bb2ad194c0646::t_0398b8bc2f5dce 1,4-9,11-33,105-106
+apps/api/test/database-startup.spec.ts
+  s_bb13b9ad374aae::t_aaa31602dfdee2 1-44
+apps/api/src/database/data-source.ts
+  s_8bb2ad194c0646::t_e0ccbafd6b2233 11-14
+  s_d7457d4a2badd8::t_817f0f51f8ce82 2
+  h_72b468a2b9f972 3-10,15-16
+apps/api/test/contracts.spec.ts
+  h_72b468a2b9f972 41,61,65
+  s_bb13b9ad374aae::t_cf2406cafd1479 68
+  s_bb13b9ad374aae::t_2622654284aedc 1-40,42-60,62-64,66-67,69-78
+.kiro/steering/structure.md
+  s_e35f8ecea54d82::t_8d225b5a8154fb 3
+  s_e35f8ecea54d82::t_bb5de21653c840 1-2,4-24
+apps/api/src/modules/users/user.entity.ts
+  h_72b468a2b9f972 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "fe587bf27acca358b9047116dd81d88c7dc02d5a",
+  "prompts": {},
+  "humans": {
+    "h_72b468a2b9f972": {
+      "author": "likezhang <likezhang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_8bb2ad194c0646": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "329844f6-7d3c-420c-b921-6956f72e4e97",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_bb13b9ad374aae": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f40476da-5827-4a1b-b340-cd21d06c8b07",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_d7457d4a2badd8": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "62b16e40-2c3f-4d8c-b22d-34e7b77b4ac7",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_e35f8ecea54d82": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "63ca76be-6dcb-4043-9ba9-fa9189b5d323",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
