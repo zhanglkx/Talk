@@ -8,6 +8,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "openapi": "pnpm run build && node dist/generate-openapi.js"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（当前步骤 M1-S01）。
+- 状态：**进行中**（当前步骤 M1-S02）。
 - 基线：`49410c2`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -48,33 +48,28 @@
 
 | 编号 | 内容 | 状态 |
 |---|---|---|
-| M1-S01 | 共享连接生命周期 `ensureConnected`：并发只连接一次，失败后可重试，成功后不重复初始化，不执行 migration。 | 进行中 |
+| M1-S01 | 共享连接生命周期 `ensureConnected`：并发只连接一次，失败后可重试，成功后不重复初始化，不执行 migration。 | done |
+| M1-S02 | 应用关闭时销毁这一份 `DataSource`，只销毁一次；关闭过程不再连接。 | 进行中 |
 
-### M1-S01 详情
+M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
-- 来源：任务卡 M1-T02 的前半（连接生命周期）。T02 后半（CLI 配置、关闭测试）和 M1-T01（基线回归）在本步通过后再拆成小步。
-- 计划：把只写在 readiness 私有方法里的连接逻辑提成共享入口，让 ready 和以后的建表、业务查询走同一个入口、同一个 `DataSource`。不建表，不做登录。
+### M1-S02 详情
+
+- 来源：任务卡 M1-T02 的关闭测试。CLI 配置仍属 T02，M1-T01 基线回归在本步通过后再拆。
+- 计划：证明 Nest 应用退出时，销毁的是启动时那一个 `DataSource`，而且只销毁一次。关闭本身不再去连接数据库。不写 CLI，不建表，不做登录。
 - 动作：
-  1. 新增 `apps/api/src/database/connection-lifecycle.service.ts`，提供 `ensureConnected()`，使用现有的 `DataSource`。
-  2. `DatabaseReadinessService.isReady()` 先调 `ensureConnected()` 再执行 `SELECT 1`，删除它自己的 `ensureInitialized()`。
-  3. `DatabaseModule` 注册并导出 `ConnectionLifecycleService`；保持 `manualInitialization: true`、`synchronize: false`、`migrationsRun: false`。
-  4. 恢复 API 测试运行：e34b3a1 删除了 `apps/api` 的 `vitest.config.ts`、`test/setup-env.ts` 和 `test` 脚本（vitest、supertest 依赖仍在）。补回这三项，并把 `test/**/*.ts` 加回 `apps/api/tsconfig.json` 的 `include`。
-  5. 用假的 `DataSource` 写下方验收测试，不连接真实数据库。
+  1. 用带 `destroy` 的假 `DataSource` 启动应用，调用 `app.close()`。
+  2. 断言这个 `destroy` 恰好被调用一次。
+  3. 断言关闭期间没有调用 `initialize`，也没有调用 `ensureConnected`。
 - 注意事项：
-  - 先判断进行中的 Promise，再判断 `isInitialized`：TypeORM 在 `initialize()` 收尾前就把 `isInitialized` 设为 `true`，收尾失败还会断开。
-  - 失败后必须清掉进行中的 Promise，否则之后每次都拿到同一个失败，无法重试。
-  - 日志不写 `DATABASE_URL` 和错误对象；不新建第二个 `DataSource`；应用启动时不连接数据库。
-  - 假 `DataSource` 只能证明我们的代码没调用 `runMigrations`；TypeORM 内部不跑 migration，靠的是 `migrationsRun: false`。
-- 验收：`pnpm --filter @ledger/api test` 和 `pnpm typecheck` 通过，且测试包含：
-  1. 并发调用两次，`initialize` 只被调用一次。
-  2. 第一次失败，第二次会再次调用 `initialize`。
-  3. 已初始化成功后再调用，不再调用 `initialize`。
-  4. 以上过程都不调用 `runMigrations`；数据库不可用时 `GET /api/v1/health` 仍返回 200，且不调用 `ensureConnected`；`GET /internal/ready` 经过 `ensureConnected()`（测试替换 `ConnectionLifecycleService` 和 `DataSource`，不替换 readiness），可用时返回 `200 {"status":"ready"}`，不可用时返回 `503 {"status":"not_ready"}`。
-- 进展（2026-10-12）：动作 1–3 已提交（c79107e、6babe7f），review 符合要求，`pnpm --filter @ledger/api typecheck` 通过；动作 4–5 未做，验收未运行。
+  - 假 `DataSource` 必须有 `destroy`。没有它，Nest 关闭时会报 `dataSource.destroy is not a function`。
+  - 不要再写一套关闭逻辑去重复调用 `destroy`。TypeORM 模块关闭时会销毁它注册的那一个；测试盯住这一个实例。
+  - CLI 用的是另一个进程里的连接，本步不创建 `data-source.ts`。
+- 验收：`pnpm --filter @ledger/api test` 和 `pnpm typecheck` 通过，且测试包含：关闭应用时 `destroy` 恰好一次；关闭期间 `initialize` 和 `ensureConnected` 都没有被调用。
 
 ## 实际执行记录
 
-2026-10-12 开始实施，进度见「当前步骤」；尚无验收运行记录。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01：`pnpm --filter @ledger/api test`（3 文件 / 6 测试通过），`pnpm typecheck` 通过。未连接真实数据库。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
