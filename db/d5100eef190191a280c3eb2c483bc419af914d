@@ -1,0 +1,42 @@
+.prettierignore
+  s_a4f445acb7a782::t_10809002a25ec7 1-5
+.vscode/extensions.json
+  s_a4f445acb7a782::t_f165c1bf8efa94 1-3
+pnpm-lock.yaml
+  s_e54dc915e658bd::t_f5f6bc26602f5d 174-178,215,2306-2310,3183,3189,3259,3267-3268,4639
+.vscode/settings.json
+  s_a4f445acb7a782::t_73459990d75327 24-52
+package.json
+  s_a4f445acb7a782::t_2e632d4b423b01 20-22
+.prettierrc.json
+  s_a4f445acb7a782::t_6911eb25a98fd5 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "dbd5100eef190191a280c3eb2c483bc419af914d",
+  "prompts": {},
+  "humans": {
+    "h_72b468a2b9f972": {
+      "author": "likezhang <likezhang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_a4f445acb7a782": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ddee6309-fa35-4fdd-af98-741100bb8072",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
