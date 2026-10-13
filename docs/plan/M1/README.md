@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（当前步骤 M1-S08）。
+- 状态：**进行中**（M1-S09 已验收；当前步骤 M1-S10，等待确认专用测试库）。
 - 基线：`49410c2`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -57,7 +57,9 @@
 | M1-S05 | 应用启动不连接数据库：`initialize` 和 `ensureConnected` 都不被调用。 | done |
 | M1-S06 | 用不可达的本机数据库地址运行实际 contracts 命令，验证离线契约生成。 | done |
 | M1-S07 | 为 TypeORM CLI 提供可加载的 DataSource 入口，加载时不连接数据库。 | done |
-| M1-S08 | 定义 users Entity，并让应用与 CLI 的共享配置注册同一实体；不自动建表。 | 进行中（测试已准备，等待用户实现） |
+| M1-S08 | 定义 users Entity，并让应用与 CLI 的共享配置注册同一实体；不自动建表。 | done |
+| M1-S09 | 编写首个 users migration，并在应用与 CLI 的共享配置注册；本步不连接或修改真实数据库。 | done |
+| M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | 环境确认中（尚未连接或执行迁移） |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -119,15 +121,46 @@ M1-S07 验收证据（2026-10-13）：用户完成 `apps/api/src/database/cli-da
   2. 用户在技术方案指定的 users 模块中手写实体，并更新共享数据库配置的 entities；字段类型显式声明，不依赖测试编译器推断装饰器类型。
   3. 助手运行针对性测试、完整 API 测试和 `pnpm typecheck`，确认启动和离线 contracts 回归测试仍通过。
 - 注意事项：不打开 synchronize 或 migrationsRun，不增加运行 DataSource，不编写 Repository、seed 或登录。不把元数据上的唯一标记视为真实数据库约束已生效；建表、重复迁移和约束验证必须留给专用测试库。UUID 生成策略保持与后续 migration 一致，避免无必要的数据库扩展。
-- 验收：元数据及共享注册符合字段要求，API 测试和类型检查通过，应用启动与契约生成保持离线可用。尚未执行，不记为通过；M1-R01 仍未验证。
+- 验收：元数据及共享注册符合字段要求，API 测试和类型检查通过，应用启动与契约生成保持离线可用。已通过，证据见下；M1-R01 仍未验证。
 
 M1-S08 测试准备记录（2026-10-13）：新增 `apps/api/test/user.entity.spec.ts` 的 3 条测试，使用 TypeORM 离线 metadata 构建检查字段及唯一约束，并检查共享配置与 CLI 的实体注册；拦截 `initialize`，不连接数据库。待实现文件为 `apps/api/src/modules/users/user.entity.ts`，命名导出 `User`；属性约定为 `id`、`username`、`passwordHash`、`createdAt`，后两者分别映射 `password_hash`、`created_at`。将现有 CLI 测试的空实体列表断言改为与共享配置一致。运行 `pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts`：现有 CLI 10 条通过，新增 3 条在实体文件缺失处失败，尚未执行到元数据断言；不是实体映射已通过的证据。测试辅助函数类型收窄为构造函数后，`pnpm typecheck` 通过。未修改业务代码，本步等待用户完成实体及共享注册；完整 API 与 contracts 验收留到实现后。
 
 M1-S08 实体验证更新（2026-10-13）：用户已完成 `User` 实体。再次运行 `pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts`：12 条通过、1 条失败；字段映射和 username 唯一约束的离线元数据检查通过，现有 CLI 10 条通过。唯一失败是共享配置仍为 `entities: []`，没有注册 User；等待用户在 `database-options.ts` 中导入实体并更新 entities。未改业务代码，未连接数据库；完整 API、类型检查和离线 contracts 的最终验收留到注册后。本步保持进行中，元数据检查不等于真实数据库约束已经生效。
 
+M1-S08 最终验收证据（2026-10-13）：用户已在共享配置中注册 `User`。`pnpm --filter @ledger/api test test/user.entity.spec.ts test/data-source.spec.ts` 为 2 个文件、13 条测试通过；`pnpm --filter @ledger/api test` 为 9 个文件、24 条测试通过，包含应用启动不连接数据库和执行实际离线 contracts 命令的回归测试；`pnpm typecheck` 的 API 与 Web 检查均通过。验证后 Git 无差异，生成契约未变化。未修改业务代码、未连接真实数据库、未执行 migration；本步 done 不表示 users 表或数据库唯一约束已存在。
+
+### M1-S09 详情
+
+- 来源：M1-T03 的版本化 migration，承接已完成的 users Entity。用户已确认本步范围；测试已准备，业务实现由用户手写。
+- 计划：先只写 users 建表 migration 并注册在共享配置中；相比一次实现 users/sessions 和运行命令，这样可以单独核对映射与建表结构，避免提前确定会话 Store 的表结构。
+- 动作：
+  1. 助手新增 `apps/api/test/users-migration.spec.ts`，用 QueryRunner 替身记录 migration 的建表/删表操作；检查共享配置与 CLI 使用同一 migration。
+  2. 用户创建 `apps/api/src/database/migrations/1791849600000-create-users.ts`，命名导出 `CreateUsers1791849600000`，实现 TypeORM 的 `MigrationInterface`。`up(queryRunner)` 使用 `queryRunner.createTable(new Table(...))` 创建 users；`down(queryRunner)` 使用 `queryRunner.dropTable('users')` 删除 users。共享配置显式注册 `migrations: [CreateUsers1791849600000]`；不修改 CLI 工厂。
+  3. 助手执行针对性测试、完整 API 测试和 `pnpm typecheck`，记录结果；实现前的失败必须来自待实现功能，不临时修改业务代码。
+- 结构：`id UUID PRIMARY KEY`，由调用方提供 UUID，不添加 UUID 扩展或默认生成函数；`username VARCHAR(32) NOT NULL UNIQUE`；`password_hash TEXT NOT NULL`；`created_at TIMESTAMPTZ NOT NULL DEFAULT now()`，与现有 CreateDateColumn 对齐。
+- TypeORM 写法约定：Table 的 name 为 `users`，columns 使用数据库列名；username 的 length 为字符串 `'32'`，created_at 的 default 为 SQL 表达式字符串 `'now()'`，不是 JavaScript Date。id 使用 `isPrimary:true`，不设置 `isGenerated` 或 default；所有列不可为空。username 唯一约束可用列的 `isUnique:true` 或独立 TableUnique 表达。
+- 注意事项：保持 `synchronize:false`、`migrationsRun:false`；不增加 DataSource、不执行真实建表或回滚、不编写 seed、Repository、sessions 或登录。离线替身只验证 migration 声明和调用，不证明 PostgreSQL 约束生效；后续必须在经确认的专用测试库验证显式迁移、重复执行和约束。
+- 验收：离线测试检查表、列、主键、唯一约束、时间默认值、down 操作及共享注册；API 回归和类型检查通过，启动及 contracts 仍不自动连接或迁移。已通过，证据见下；M1-R01 继续保持未验证。
+
+M1-S09 测试准备记录（2026-10-13）：新增 3 条离线测试，覆盖 up 的 users 表结构和唯一约束、down 仅删除 users、共享配置与 CLI 注册相同 migration；第三条还使用 TypeORM 离线 metadata 构建检查 migration 实例。QueryRunner 仅提供建表/删表替身，DataSource.initialize 被拦截。运行 `pnpm --filter @ledger/api test test/users-migration.spec.ts test/user.entity.spec.ts test/data-source.spec.ts`：现有 13 条通过，新增 3 条均因待实现 migration 文件不存在而失败，尚未执行到表结构或共享注册断言；不是建表或迁移已通过的证据。`pnpm typecheck` 通过，新增测试无编辑器诊断。未修改业务代码、未连接数据库、未执行实际 migration；等待用户完成 migration 及共享注册后再运行完整 API 和离线 contracts 验收。
+
+M1-S09 最终验收证据（2026-10-13）：用户已完成 users migration 及共享配置注册。针对性命令 `pnpm --filter @ledger/api test test/users-migration.spec.ts test/user.entity.spec.ts test/data-source.spec.ts` 为 3 个文件、16 条测试通过，包含新增 migration 的 3 条；`pnpm --filter @ledger/api test` 为 10 个文件、27 条通过，包含真实应用启动不连接及实际离线 contracts 命令的回归；`pnpm typecheck` 的 API/Web 检查均通过，两个业务文件无编辑器诊断。未修改用户业务实现、未执行真实 migration 或建表；本步仅验收离线声明和注册，不表示真实数据库约束生效。
+
+### M1-S10 环境确认与计划
+
+- 目标：从离线结构检查推进到本机真实 PostgreSQL 的 users migration 验收。仅处理 users；sessions 尚未实现，不能据此将 M1-R01 整体标为通过。
+- 前置条件：用户确认独立、可用于测试的空数据库及其库名，允许在该库建表并写入虚构测试数据。不要向对话发送密码或连接串；由本机环境提供单一 DATABASE_URL。不沿用未知用途的默认库，也不删除已有表来制造空库。
+- 动作：
+  1. 确认专用库与操作授权，再准备隔离的 PostgreSQL 集成测试；普通离线 API 测试不得自动连接该库。
+  2. 构建 API，用编译后的 CLI DataSource 入口执行显式 TypeORM migration 命令；环境注入仅用于该测试进程，不修改用户的 .env。
+  3. 验证首次执行创建 users 并记录 migration；第二次执行没有待执行 migration、不重复建表；核对 UUID 主键、username 唯一及长度、非空、created_at 默认时间等真实约束。
+  4. 记录命令、结果和库名，不记录凭据；失败时先定位，不改用户业务代码。保持应用启动和 contracts 离线回归。
+- 注意事项：真实 down 会删除 users 及其数据，不作为默认测试清理动作；执行回滚或删库须另行明确授权。优先使用事务回滚清理虚构插入数据；测试连接必须在 finally 中关闭。保持 synchronize:false、migrationsRun:false，不实现 seed、Repository 或登录。
+- 当前证据：只有计划，尚未准备真实数据库测试、确认目标库或执行迁移。
+
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S07。S07 的 `pnpm --filter @ledger/api test` 为 8 个文件、21 个测试通过，`pnpm typecheck` 通过；编译后 CLI 入口可由 TypeORM 实际加载器离线加载，未执行迁移或真实连接。S08 实体映射已通过离线测试，目前针对性测试 12 条通过、1 条失败，等待用户完成共享实体注册，尚未完成。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。S10 等待确认专用空测试库及真实数据库操作授权。尚未执行业务迁移或真实建表，阶段验收 M1-R01 仍未验证。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
