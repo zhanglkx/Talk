@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**计划／未开始**。
+- 状态：**进行中**（当前步骤 M1-S01）。
 - 基线：`49410c2`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -44,15 +44,37 @@
 
 ## 当前步骤
 
-一次只展开这一步。验收通过后把状态改为 done，再写下一步。
+一次只展开这一步。验收通过后直接把状态改为 done 并记下验收证据，再写出下一步的计划、动作、注意事项和验收；未通过就停在本步。
 
 | 编号 | 内容 | 状态 |
 |---|---|---|
 | M1-S01 | 共享连接生命周期 `ensureConnected`：并发只连接一次，失败后可重试，成功后不重复初始化，不执行 migration。 | 进行中 |
 
+### M1-S01 详情
+
+- 来源：任务卡 M1-T02 的前半（连接生命周期）。T02 后半（CLI 配置、关闭测试）和 M1-T01（基线回归）在本步通过后再拆成小步。
+- 计划：把只写在 readiness 私有方法里的连接逻辑提成共享入口，让 ready 和以后的建表、业务查询走同一个入口、同一个 `DataSource`。不建表，不做登录。
+- 动作：
+  1. 新增 `apps/api/src/database/connection-lifecycle.service.ts`，提供 `ensureConnected()`，使用现有的 `DataSource`。
+  2. `DatabaseReadinessService.isReady()` 先调 `ensureConnected()` 再执行 `SELECT 1`，删除它自己的 `ensureInitialized()`。
+  3. `DatabaseModule` 注册并导出 `ConnectionLifecycleService`；保持 `manualInitialization: true`、`synchronize: false`、`migrationsRun: false`。
+  4. 恢复 API 测试运行：e34b3a1 删除了 `apps/api` 的 `vitest.config.ts`、`test/setup-env.ts` 和 `test` 脚本（vitest、supertest 依赖仍在）。补回这三项，并把 `test/**/*.ts` 加回 `apps/api/tsconfig.json` 的 `include`。
+  5. 用假的 `DataSource` 写下方验收测试，不连接真实数据库。
+- 注意事项：
+  - 先判断进行中的 Promise，再判断 `isInitialized`：TypeORM 在 `initialize()` 收尾前就把 `isInitialized` 设为 `true`，收尾失败还会断开。
+  - 失败后必须清掉进行中的 Promise，否则之后每次都拿到同一个失败，无法重试。
+  - 日志不写 `DATABASE_URL` 和错误对象；不新建第二个 `DataSource`；应用启动时不连接数据库。
+  - 假 `DataSource` 只能证明我们的代码没调用 `runMigrations`；TypeORM 内部不跑 migration，靠的是 `migrationsRun: false`。
+- 验收：`pnpm --filter @ledger/api test` 和 `pnpm typecheck` 通过，且测试包含：
+  1. 并发调用两次，`initialize` 只被调用一次。
+  2. 第一次失败，第二次会再次调用 `initialize`。
+  3. 已初始化成功后再调用，不再调用 `initialize`。
+  4. 以上过程都不调用 `runMigrations`；数据库不可用时 `GET /api/v1/health` 仍返回 200，且不调用 `ensureConnected`；`GET /internal/ready` 经过 `ensureConnected()`（测试替换 `ConnectionLifecycleService` 和 `DataSource`，不替换 readiness），可用时返回 `200 {"status":"ready"}`，不可用时返回 `503 {"status":"not_ready"}`。
+- 进展（2026-10-12）：动作 1–3 已提交（c79107e、6babe7f），review 符合要求，`pnpm --filter @ledger/api typecheck` 通过；动作 4–5 未做，验收未运行。
+
 ## 实际执行记录
 
-尚无本阶段实施或运行记录。开始执行后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施，进度见「当前步骤」；尚无验收运行记录。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。

@@ -1,10 +1,11 @@
-import { Logger, Module } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { DatabaseReadinessService } from './database-readiness.service.js'
-import { ConnectionLifecycleService } from './connection-lifecycle.service.js'
+import { Logger, Module } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { DatabaseReadinessService } from "./database-readiness.service.js";
+import { ConnectionLifecycleService } from "./connection-lifecycle.service.js";
 
-const logger = new Logger('DatabaseModule')
+// 组装数据库：生成唯一的连接配置，并把连接服务和就绪检查提供给别的模块。
+const logger = new Logger("DatabaseModule");
 
 @Module({
   imports: [
@@ -12,9 +13,9 @@ const logger = new Logger('DatabaseModule')
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
+        type: "postgres",
         // 只认 DATABASE_URL 这一条连接串。没有它就启动失败，避免连到一个未配置的库。
-        url: configService.getOrThrow<string>('DATABASE_URL'),
+        url: configService.getOrThrow<string>("DATABASE_URL"),
         // 启动时先不连接。数据库暂时不可用，进程仍然要能起来。
         manualInitialization: true,
         // 禁止 TypeORM 按代码自动改表，避免误删列或改字段类型。
@@ -27,7 +28,7 @@ const logger = new Logger('DatabaseModule')
         connectTimeoutMS: 3_000,
         // 连接池是预先打开、反复借用的一组连接。这里只记发生了错误，不写连接串，避免密码进日志。
         poolErrorHandler: () => {
-          logger.error('Database pool error')
+          logger.error("Database pool error");
         },
         extra: {
           // 单条查询超过 3 秒就中断。
@@ -36,6 +37,7 @@ const logger = new Logger('DatabaseModule')
       }),
     }),
   ],
+  // 两个服务共用上面这一份连接。导出后别的模块才能注入，不能各自再连一个库。
   providers: [DatabaseReadinessService, ConnectionLifecycleService],
   exports: [DatabaseReadinessService, ConnectionLifecycleService],
 })
