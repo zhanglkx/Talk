@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
-import { validateEnvironment } from './config/validate-environment.js'
-import { DatabaseModule } from './database/database.module.js'
-import { HealthModule } from './health/health.module.js'
-import { InternalModule } from './internal/internal.module.js'
+import { validateEnvironment } from '@/config/validate-environment.js'
+import { DatabaseModule } from '@/database/database.module.js'
+import { HealthModule } from '@/health/health.module.js'
+import { InternalModule } from '@/internal/internal.module.js'
 
 @Module({
   imports: [

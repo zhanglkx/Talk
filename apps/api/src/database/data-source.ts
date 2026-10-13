@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm'
-import { createDatabaseOptions } from './database-options.js'
+import { createDatabaseOptions } from '@/database/database-options.js'
 
 // 给命令行单独用的连接对象。创建时不连接。
 export function createCliDataSource(databaseUrl: string): DataSource {

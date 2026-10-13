@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
-import { ConnectionLifecycleService } from './connection-lifecycle.service.js'
+import { ConnectionLifecycleService } from '@/database/connection-lifecycle.service.js'
 
 // 回答数据库现在能不能用。连接是否建立交给 ConnectionLifecycleService。
 @Injectable()

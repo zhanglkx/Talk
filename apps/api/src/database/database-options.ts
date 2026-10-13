@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common'
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm'
-import { User } from '../modules/users/user.entity.js'
+import { User } from '@/modules/users/user.entity.js'
 
 // 只描述怎么连。不创建连接，也不读取环境变量；调用方把地址传进来。
 const logger = new Logger('DatabaseModule')

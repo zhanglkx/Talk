@@ -4,7 +4,7 @@ import {
   ApiProperty,
   ApiServiceUnavailableResponse,
 } from '@nestjs/swagger'
-import { DatabaseReadinessService } from '../database/database-readiness.service.js'
+import { DatabaseReadinessService } from '@/database/database-readiness.service.js'
 
 class ReadyResponse {
   @ApiProperty({ enum: ['ready'], example: 'ready' })

@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { DatabaseReadinessService } from "./database-readiness.service.js";
-import { ConnectionLifecycleService } from "./connection-lifecycle.service.js";
-import { createDatabaseOptions } from "./database-options.js";
+import { DatabaseReadinessService } from "@/database/database-readiness.service.js";
+import { ConnectionLifecycleService } from "@/database/connection-lifecycle.service.js";
+import { createDatabaseOptions } from "@/database/database-options.js";
 
 // 组装数据库：用共享配置生成唯一的连接，并把连接服务和就绪检查提供给别的模块。
 @Module({

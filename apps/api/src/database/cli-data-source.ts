@@ -1,8 +1,8 @@
 // TypeORM CLI 的独立入口：加载时校验配置并创建连接对象，不连接数据库或执行迁移。
 // 不导入 AppModule，避免为命令行操作启动整个 Nest 应用。
 import 'reflect-metadata'
-import { validateEnvironment } from '../config/validate-environment.js'
-import { createCliDataSource } from './data-source.js'
+import { validateEnvironment } from '@/config/validate-environment.js'
+import { createCliDataSource } from '@/database/data-source.js'
 
 // 只读取进程环境，不自动加载 .env；调用命令负责提供 DATABASE_URL。
 // 复用应用的校验规则，缺少或非法配置时直接失败。

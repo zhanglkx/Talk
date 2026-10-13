@@ -3,8 +3,8 @@ import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { AppModule } from './app.module.js'
-import { configureApp } from './configure-app.js'
+import { AppModule } from '@/app.module.js'
+import { configureApp } from '@/configure-app.js'
 
 const app = await NestFactory.create(AppModule, { logger: false })
 
