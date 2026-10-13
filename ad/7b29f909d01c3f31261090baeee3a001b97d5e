@@ -1,0 +1,50 @@
+apps/api/test/data-source.spec.ts
+  h_72b468a2b9f972 62,89,104
+  s_8bb2ad194c0646::t_0398b8bc2f5dce 1,4-9,11-33,105-106
+  s_bb13b9ad374aae::t_945f545fe43e00 2-3,10,34-61,63-75,78-88,90-103
+  s_bb13b9ad374aae::t_3ffa84b57d68ca 76-77
+apps/api/src/database/cli-data-source.ts
+  s_bb13b9ad374aae::t_49e2666aec40c6 1-8,11,13-14
+  h_72b468a2b9f972 9-10,12,15
+apps/api/src/database/data-source.ts
+  s_d7457d4a2badd8::t_817f0f51f8ce82 2
+  h_72b468a2b9f972 3-10,15-16
+  s_8bb2ad194c0646::t_e0ccbafd6b2233 11-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "ad7b29f909d01c3f31261090baeee3a001b97d5e",
+  "prompts": {},
+  "humans": {
+    "h_72b468a2b9f972": {
+      "author": "likezhang <likezhang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_8bb2ad194c0646": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "329844f6-7d3c-420c-b921-6956f72e4e97",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_bb13b9ad374aae": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f40476da-5827-4a1b-b340-cd21d06c8b07",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    },
+    "s_d7457d4a2badd8": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "62b16e40-2c3f-4d8c-b22d-34e7b77b4ac7",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
