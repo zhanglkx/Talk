@@ -1,0 +1,37 @@
+apps/api/src/database/database-options.ts
+  s_8bb2ad194c0646::t_05a70c0086ea79 30
+  s_8bb2ad194c0646::t_4ad59117894c31 31
+  s_8bb2ad194c0646::t_4ff09cc81c92bb 1,3-6,8,10-22,24-29
+  s_8bb2ad194c0646::t_315c8e650aed25 7
+  s_8bb2ad194c0646::t_9f4f45c8ae9cca 9
+  s_8bb2ad194c0646::t_c50c2755044d8a 2
+  s_8bb2ad194c0646::t_a40f8ca3f0f0f2 23
+apps/api/test/database-options.spec.ts
+  s_8bb2ad194c0646::t_64807d9b37f54f 1-56
+apps/api/src/database/database.module.ts
+  s_8bb2ad194c0646::t_6e9e2a86f8ba6c 1,6,8,14-15
+apps/api/test/database-shutdown.spec.ts
+  s_8bb2ad194c0646::t_4a78e2021de6ef 1-46
+docs/plan/M1/README.md
+  s_8bb2ad194c0646::t_c7585d4b32ad86 60,62-65,67-70,72-75
+  s_8bb2ad194c0646::t_57b4db1ddc4d7b 53-54
+  s_8bb2ad194c0646::t_0301b402e0cdb7 4
+  s_8bb2ad194c0646::t_6478b6a767120e 79
+  s_8bb2ad194c0646::t_3e5f9c01219e35 52,58,61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "10eb08f14326308b1c1576e0e24b361b983b6c4b",
+  "prompts": {},
+  "sessions": {
+    "s_8bb2ad194c0646": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "329844f6-7d3c-420c-b921-6956f72e4e97",
+        "model": "grok-4.7"
+      },
+      "human_author": "likezhang <likezhang@trip.com>"
+    }
+  }
+}
