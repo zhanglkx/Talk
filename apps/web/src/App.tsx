@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { components } from './generated/api-types'
+import type { components } from '@/generated/api-types'
 
 type HealthResponse = components['schemas']['HealthResponse']
 
