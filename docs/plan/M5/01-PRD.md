@@ -39,7 +39,7 @@ CI DB服务不可用时该检查明确失败，不跳过；迁移失败不启动
 
 ## 依据与实施状态
 
-基线：49410c2（2026-10-09核对）；总计划：plan/2026-10-09-个人账本全栈学习计划.md。产品依据：docs/PRD-fullstack-ai-ledger.md；技术依据：docs/TECH-PLAN-fullstack-ai-ledger.md。重点章节：PRD §8～§11；技术方案 §8～§9；M4 P0门、根目录 package scripts。
+基线：4a3f08b（2026-10-09核对）；总计划：plan/2026-10-09-个人账本全栈学习计划.md。产品依据：docs/PRD-fullstack-ai-ledger.md；技术依据：docs/TECH-PLAN-fullstack-ai-ledger.md。重点章节：PRD §8～§11；技术方案 §8～§9；M4 P0门、根目录 package scripts。
 
 通用约束：只有虚构数据；NestJS/React 单体、本机 PostgreSQL、TypeORM、单一 DATABASE_URL；synchronize:false、migrationsRun:false；无 Docker、Redis 或新业务框架。金额分字符串，月份固定上海时区。文档中的目标文件、命令与验收不是已有实现。
 

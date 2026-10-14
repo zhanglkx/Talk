@@ -2,7 +2,7 @@
 
 目标窗口：**2026-10-12 ～ 2027-04-25，七个四周学习月（28周）**。M1 进行中，M2～M7 未开始；各阶段一次只推进一小步，进度见各自 README 的「当前步骤」。本索引不代表业务已实现。
 
-[总学习计划](./2026-10-09-%E4%B8%AA%E4%BA%BA%E8%B4%A6%E6%9C%AC%E5%85%A8%E6%A0%88%E5%AD%A6%E4%B9%A0%E8%AE%A1%E5%88%92.md) 保留为总体节奏说明；下面每阶段三份文档提供实施细节。阶段日期以本目录七阶段窗口为准，具体契约与任务以阶段文档执行。
+[总学习计划](./2026-10-09-%E4%B8%AA%E4%BA%BA%E8%B4%A6%E6%9C%AC%E5%85%A8%E6%A0%88%E5%AD%A6%E4%B9%A0%E8%AE%A1%E5%88%92.md) 保留为总体节奏说明；下面每阶段三份文档提供实施细节。阶段日期以本目录七阶段窗口为准，具体契约与任务以阶段文档执行。总 PRD 和总技术方案里的 24 周周次表是早期估算，已被七阶段计划取代。
 
 ## 七阶段入口
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | M1 | 业务数据库与认证最小闭环 | 2026-10-12 ～ 2026-11-08 | [阅读与验收追踪](M1/README.md) |
 | M2 | 分类、流水创建与列表 | 2026-11-09 ～ 2026-12-06 | [阅读与验收追踪](M2/README.md) |
-| M3 | 流水生命周期、月报与基础幂等 | 2026-12-07 ～ 2027-01-03 | [阅读与验收追踪](M3/README.md) |
+| M3 | 流水生命周期、月报与幂等重放 | 2026-12-07 ～ 2027-01-03 | [阅读与验收追踪](M3/README.md) |
 | M4 | P0 质量门、事务与并发可靠性 | 2027-01-04 ～ 2027-01-31 | [阅读与验收追踪](M4/README.md) |
 | M5 | 交付、可观测性与恢复 | 2027-02-01 ～ 2027-02-28 | [阅读与验收追踪](M5/README.md) |
 | M6 | 受限只读 AI 核心 | 2027-03-01 ～ 2027-03-28 | [阅读与验收追踪](M6/README.md) |
@@ -37,9 +37,9 @@ M1 认证与数据库基础 → M2 分类／可靠创建／列表 → M3 编辑�
 
 ## 当前基线与边界
 
-已核对代码基线 `49410c2`：NestJS／React骨架、TypeORM／PostgreSQL接入、health／ready和最小契约生成。认证、业务迁移、分类、流水、月报、CI／部署和AI仍未实现。本次仅编写阶段文档，不运行未来业务测试、不修改运行代码。
+阶段文档按代码基线 `4a3f08b` 编写：NestJS／React骨架、TypeORM／PostgreSQL接入、health／ready和最小契约生成。2026-10-09 核对时记录的是 `49410c2`，它只在旧分支 `feat/postgresql-minimal` 上，文件内容与 `4a3f08b` 完全相同。之后的实际进度只看各阶段 README。
 
-现有 `pnpm check` 只包含 contracts → typecheck → API／Web普通测试 → build；`pnpm --filter @ledger/api test:db` 是 SELECT 1 smoke。阶段要求的 migration／seed／真实业务DB／E2E／评测脚本，需要各阶段先实现再使用。
+现有 `pnpm check` 依次跑 contracts → typecheck → 根 `pnpm test` → build；根 `pnpm test` 目前只跑 Web，API 测试要另跑 `pnpm --filter @ledger/api test`（M1-S12 计划把它纳入质量门）。仓库没有 `test:db`，也还没有 migration／seed／真实业务DB／E2E／评测脚本，需要各阶段先实现再使用。
 
 通用约束：只有虚构数据；NestJS/React 单体、本机 PostgreSQL、TypeORM、单一 DATABASE_URL；synchronize:false、migrationsRun:false；无 Docker、Redis 或新业务框架。金额分字符串，月份固定上海时区。文档中的目标文件、命令与验收不是已有实现。
 

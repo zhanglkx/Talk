@@ -2,11 +2,11 @@
 
 2026-10-12 ～ 2026-11-08｜阶段实施设计 v1.0｜2026-10-09
 
-当前状态：计划／未开始。内容定义后续实施目标，不表示业务已实现、测试已通过或环境已部署。
+当前状态：M1 进行中，进度和证据见本目录 README.md。本文定义实施目标，不表示业务已实现、测试已通过或环境已部署。
 
 文档用途：定义用户、范围、接口行为、错误反馈与产品验收。
 
-前置门：已有 NestJS/React、TypeORM/PostgreSQL、环境校验、health/ready 和 OpenAPI 类型生成；业务 migration、Entity、账号与认证尚未实现。基线为 49410c2，历史测试记录不代表本阶段通过。
+前置门：已有 NestJS/React、TypeORM/PostgreSQL、环境校验、health/ready 和 OpenAPI 类型生成；业务 migration、Entity、账号与认证尚未实现。基线为 4a3f08b，历史测试记录不代表本阶段通过。
 
 阶段产出：可复现 migration、两个虚构账号、会话登录/退出/me、受保护请求、最小登录页面与可核对的测试证据。分类写入为可选项，完整流水留给 M2/M3。
 
@@ -73,7 +73,7 @@ me 返回 CSRF token 后存于页面内存；401 清理身份并回登录；网�
 
 ## 依据与实施状态
 
-基线：49410c2（2026-10-09核对）；总计划：plan/2026-10-09-个人账本全栈学习计划.md。产品依据：docs/PRD-fullstack-ai-ledger.md；技术依据：docs/TECH-PLAN-fullstack-ai-ledger.md。重点章节：PRD §4～§6、§8；技术方案 §2～§5、§9；数据库与 AppModule 当前代码。
+基线：4a3f08b（2026-10-09核对）；总计划：plan/2026-10-09-个人账本全栈学习计划.md。产品依据：docs/PRD-fullstack-ai-ledger.md；技术依据：docs/TECH-PLAN-fullstack-ai-ledger.md。重点章节：PRD §4～§6、§8；技术方案 §2～§5、§9；数据库与 AppModule 当前代码。
 
 通用约束：只有虚构数据；NestJS/React 单体、本机 PostgreSQL、TypeORM、单一 DATABASE_URL；synchronize:false、migrationsRun:false；无 Docker、Redis 或新业务框架。金额分字符串，月份固定上海时区。文档中的目标文件、命令与验收不是已有实现。
 
