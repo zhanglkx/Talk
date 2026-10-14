@@ -1,6 +1,6 @@
 # 技术约束与命令实情
 
-现状核对于 2026-10-13（M1-S07 开始前）。命令和版本以各 `package.json` 与代码为准；README、计划文档里的命令可能滞后，或只是目标。
+现状核对于 2026-10-14（M1-S10）。命令和版本以各 `package.json` 与代码为准；README、计划文档里的命令可能滞后，或只是目标。
 
 ## 硬约束
 
@@ -13,7 +13,7 @@
 ## 命令实情
 
 - 根目录 `pnpm test` 只跑 Web；API 测试是 `pnpm --filter @ledger/api test`。所以 `pnpm check` 通过不代表 API 测试通过。
-- 目前没有 `test:db`、migration、seed 脚本；README 里的 `test:db` 已过时。
+- 目前没有 `test:db`、migration、seed 脚本。
 - API 的 `dev` 用 SWC 且带 `--no-type-check`，类型错误只在 `pnpm typecheck` 或 `build` 时暴露。
 - `pnpm contracts`：构建 API → 运行 `dist/generate-openapi.js` 写 `docs/openapi.json` → 生成 `apps/web/src/generated/api-types.ts`。不需要数据库在线，但需要格式合法的 `DATABASE_URL`。
 - `apps/api/test/contracts.spec.ts` 会执行真实的 `pnpm contracts`，重写上面两份生成文件；跑完用 `git status` 确认没有意外差异。

@@ -9,7 +9,7 @@
 - `GET /api/v1/health` 存活检查（不查库），`GET /internal/ready` 就绪检查（`SELECT 1`，失败返回 503）
 - OpenAPI 产物 `docs/openapi.json`，以及由它生成的 Web 类型
 
-认证、业务 migration、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段目标与验收见 [学习计划](docs/plan/README.md)。
+已有 users 表的实体、第一个 migration 和给 TypeORM CLI 用的连接入口，但还没有执行 migration 的命令，这份 migration 也没有在任何数据库执行。认证、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段进度与验收见 [学习计划](docs/plan/README.md)。
 
 ## 技术栈
 
@@ -60,12 +60,12 @@ curl http://127.0.0.1:3000/internal/ready
 | `pnpm dev` | 并行启动 API 与 Web |
 | `pnpm contracts` | 重新生成 OpenAPI，并据此生成 Web 类型 |
 | `pnpm typecheck` | API 与 Web 类型检查 |
-| `pnpm test` | API 与 Web 单元测试 |
-| `pnpm --filter @ledger/api test:db` | 对真实 PostgreSQL 执行 `SELECT 1` |
+| `pnpm test` | Web 单元测试（目前不含 API） |
+| `pnpm --filter @ledger/api test` | API 单元与 HTTP 测试；其中契约测试会真的跑 `pnpm contracts`，重建 `apps/api/dist`（正在运行的 `pnpm dev` 会因此重启 API）并重写两份生成文件 |
 | `pnpm build` | 构建 API 与 Web |
-| `pnpm check` | 依次跑 contracts、typecheck、test、build |
+| `pnpm check` | 依次跑 contracts、typecheck、`pnpm test`、build；不含 API 测试 |
 
-`pnpm test` 不连接数据库。`test:db` 需要 `.env` 中的 `DATABASE_URL` 能连上本机 PostgreSQL。
+`pnpm test` 和 API 测试都不连接数据库；API 测试固定使用一个连不上的本机地址，不使用 `.env` 里的连接串。真实 PostgreSQL 的 migration 与集成测试在 M1 后续步骤建立，命令写在 [M1 进度](docs/plan/M1/README.md)。
 
 ## 目录
 

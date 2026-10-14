@@ -2,13 +2,13 @@
 
 ## 现有结构（2026-10-13 核对）
 
-- `apps/api/src/`：`main.ts`（监听 `127.0.0.1:PORT`，默认 3000）、`app.module.ts`、`configure-app.ts`（全局前缀）、`generate-openapi.ts`（导出契约）、`config/`（环境校验）、`database/`（共享连接配置、连接生命周期、就绪检查、CLI DataSource 工厂）、`health/`、`internal/`。
+- `apps/api/src/`：`main.ts`（监听 `127.0.0.1:PORT`，默认 3000）、`app.module.ts`、`configure-app.ts`（全局前缀）、`generate-openapi.ts`（导出契约）、`config/`（环境校验）、`database/`（共享连接配置、连接生命周期、就绪检查、CLI DataSource 工厂与入口、`migrations/`）、`modules/users/`（User 实体）、`health/`、`internal/`。
 - `apps/web/src/`：`App.tsx`、`main.tsx`；`src/generated/` 是生成物。
 - 测试只放各应用自己的 `test/`：API 为 `apps/api/test/*.spec.ts`，Web 为 `apps/web/test/*.test.tsx`；不放进 `src/` 或仓库根目录。
 - `docs/openapi.json` 和 `apps/web/src/generated/api-types.ts` 只由 `pnpm contracts` 生成，不手改。
 - `docs/superpowers/` 是早期 PostgreSQL 接入的设计与计划，属历史记录；`.cursor/rules/` 是给 Cursor 用的同类规则。
 
-## 目标位置（技术方案 §3，尚未创建）
+## 目标位置（技术方案 §3；`modules/users/` 与 `database/migrations/` 已有，其余尚未创建）
 
 - 业务模块放 `apps/api/src/modules/<模块>/`：`<模块>.module.ts`、`.controller.ts`、`.service.ts`、`<实体>.entity.ts`、`.repository.ts`、`schemas.ts`。
 - 横切逻辑放 `apps/api/src/common/{middleware,guards,filters,interceptors}/`；migration 放 `apps/api/src/database/migrations/`。
