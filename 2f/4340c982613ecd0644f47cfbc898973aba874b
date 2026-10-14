@@ -1,0 +1,94 @@
+docs/plan/M1/README.md
+  s_d7457d4a2badd8::t_c9a2def48af818 5,10
+docs/plan/M5/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_d9629fc1683558 53
+  s_d7457d4a2badd8::t_58b5a17b1fccad 49
+docs/plan/M2/01-PRD.md
+  s_d7457d4a2badd8::t_ff87d563670671 62
+docs/plan/M4/01-PRD.md
+  s_d7457d4a2badd8::t_0d941e6478fba8 50
+docs/plan/M2/README.md
+  s_d7457d4a2badd8::t_19f4f16036b7c1 5
+docs/plan/M5/02-技术方案.md
+  s_d7457d4a2badd8::t_6ee61b78822b18 17,25
+  s_d7457d4a2badd8::t_7f316c9b2e2842 63
+docs/plan/README.md
+  s_d7457d4a2badd8::t_665cefd6b0279e 5,13,40,42
+docs/plan/M2/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_c7c07328d010d2 54
+docs/plan/M7/02-技术方案.md
+  s_d7457d4a2badd8::t_1b99443b0ca64c 97
+  s_d7457d4a2badd8::t_f5c7d103d4433a 50-51,89
+docs/plan/M3/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_5265feef485dc6 1
+  s_d7457d4a2badd8::t_12c3955ef3a436 54
+docs/plan/M6/02-技术方案.md
+  s_d7457d4a2badd8::t_2eea356ad44ac9 9
+  s_d7457d4a2badd8::t_2b804142056e64 15,39
+  s_d7457d4a2badd8::t_230136e9db60d1 63
+docs/plan/M7/README.md
+  s_d7457d4a2badd8::t_5ea22b410ec27d 5
+docs/plan/M1/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_7b3df943958a08 9,73
+  s_d7457d4a2badd8::t_05bc08d316fb33 5,23,65
+docs/plan/M5/README.md
+  s_d7457d4a2badd8::t_0f17fdd0892d1a 5
+docs/plan/M3/02-技术方案.md
+  s_d7457d4a2badd8::t_1c05c1a7c88444 59
+  s_d7457d4a2badd8::t_c2ae78047f998d 1,39
+docs/plan/M6/README.md
+  s_d7457d4a2badd8::t_dfe393f550abd5 10
+  s_d7457d4a2badd8::t_0a0e958191ac1e 5
+  s_d7457d4a2badd8::t_4a160beab4dfd6 56
+docs/plan/M7/01-PRD.md
+  s_d7457d4a2badd8::t_21c791e50c87b8 44
+docs/plan/M5/01-PRD.md
+  s_d7457d4a2badd8::t_06edfef0978248 42
+docs/plan/M6/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_d0321a685e8747 54
+  s_d7457d4a2badd8::t_f99fc7e6ddaf86 9
+docs/plan/M3/01-PRD.md
+  s_d7457d4a2badd8::t_2cc590534d8017 1
+  s_d7457d4a2badd8::t_d9f7e3e95d848d 62
+docs/plan/M1/01-PRD.md
+  s_d7457d4a2badd8::t_939546104d0032 5
+  s_d7457d4a2badd8::t_11b3a05280a70a 9,76
+docs/plan/M4/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_a3004919a54218 54
+docs/plan/M4/README.md
+  s_d7457d4a2badd8::t_cd56a5bfdf22d2 5
+docs/plan/M2/02-技术方案.md
+  s_d7457d4a2badd8::t_5a659befeb45ba 60
+  s_d7457d4a2badd8::t_154c6c17e72c63 26
+docs/plan/M6/01-PRD.md
+  s_d7457d4a2badd8::t_c241b19ce0ed36 9
+  s_d7457d4a2badd8::t_2470fe2b7280ee 51
+docs/plan/2026-10-09-个人账本全栈学习计划.md
+  s_d7457d4a2badd8::t_eb6c973f998d08 31,37-39,58,61,72,76,78,86,91,121,133,146,150
+docs/plan/M4/02-技术方案.md
+  s_d7457d4a2badd8::t_9d713229bdf4af 59
+docs/plan/M1/02-技术方案.md
+  s_d7457d4a2badd8::t_08f9391edccf10 9,104
+  s_d7457d4a2badd8::t_1fe5769157ffae 5,15,17,25,100
+docs/plan/M3/README.md
+  s_d7457d4a2badd8::t_7238c78387abca 1
+  s_d7457d4a2badd8::t_c21f3e683bd55b 5
+docs/plan/M7/03-学习与执行计划.md
+  s_d7457d4a2badd8::t_d14624fab002f9 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "2f4340c982613ecd0644f47cfbc898973aba874b",
+  "prompts": {},
+  "sessions": {
+    "s_d7457d4a2badd8": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "62b16e40-2c3f-4d8c-b22d-34e7b77b4ac7",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
