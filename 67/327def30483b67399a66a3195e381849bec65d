@@ -1,0 +1,19 @@
+apps/api/test/password-hasher.spec.ts
+  s_85c62c5c2bd069::t_e8375a0f0c1279 1-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "67327def30483b67399a66a3195e381849bec65d",
+  "prompts": {},
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
