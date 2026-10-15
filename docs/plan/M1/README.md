@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S14 已验收；当前步骤 M1-S15，密码哈希与校验）。
+- 状态：**进行中**（M1-S14 已验收；当前步骤 M1-S15，密码哈希与校验，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -64,7 +64,7 @@
 | M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | done |
 | M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | done |
 | M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | done |
-| M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | 待用户选择哈希实现 |
+| M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -309,6 +309,12 @@ M1-S14 验收证据（2026-10-15）：
   4. 助手运行测试、测量耗时、运行 `pnpm check`，记录证据。
 - 注意事项：密码原样参与哈希，不 trim、不转小写（PRD §4）；测试只用虚构的固定密码，不写进日志；函数里不打印密码或哈希。只用异步版本，同步版本会在计算的几十毫秒里卡住整个服务器。
 - 验收：`password-hasher.spec.ts` 全部通过；记录本机单次哈希耗时；`pnpm check` 退出码 0。
+
+M1-S15 测试准备记录（2026-10-15）：
+- 用户选择 A。助手执行 `pnpm --filter @ledger/api add @node-rs/argon2@2.2.2 --save-exact`：`apps/api/package.json` 新增 `"@node-rs/argon2": "2.2.2"`；锁文件只新增该包及其各平台预编译包的条目（本机实际下载 2 个包：主包和 `darwin-arm64`），无安装脚本，安装时供应链检查通过，没有修改 `pnpm-workspace.yaml`。安装输出的 peer 依赖警告是 `@nestjs/swagger@12.0.2` 期望 TypeScript 5/6 而项目用 7.0.2，与新依赖无关。
+- 库行为核对（临时脚本，已删除）：`hash` 默认即 Argon2id，输出 PHC 字符串，长度 97；`verify` 遇到格式损坏的哈希会抛出 `InvalidArg: Decoding failed`，所以 `verifyPassword` 要自己接住并返回 `false`。本机（Apple M4）参数 `m=19456,t=2,p=1` 下，10 次哈希耗时中位数 8.5ms（最小 7.2、最大 10.8），校验中位数 8.9ms。
+- 新增 `apps/api/test/password-hasher.spec.ts`，14 条：PHC 格式与参数；同一密码两次哈希不同且都能校验；哈希不含明文；错误密码、首尾多空格、大小写不同、空串均为 `false`；中文与 emoji 密码可用；旧参数生成的哈希仍能校验；三种损坏的哈希返回 `false` 而不是抛错；哈希和校验期间不阻塞事件循环。最后一条事先用临时脚本核对过区分力：真正异步的实现 50/50 次通过，用同步 `hashSync` 包一层 `async` 的实现 0/50 次通过。
+- 实现前运行：14 条均因 `password-hasher.ts` 不存在而失败；原有 60 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
 - 未修改业务代码。
 
 ## 实际执行记录
