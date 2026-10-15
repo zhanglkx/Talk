@@ -1,0 +1,24 @@
+apps/api/test/users.repository.spec.ts
+  s_85c62c5c2bd069::t_b88ab1dc0322a7 95-99,101-103,105-108
+  s_85c62c5c2bd069::t_b66101df1a2e66 19,23-24,70-74,87-94,100,104,109-141
+  s_85c62c5c2bd069::t_9e703d62a28dfe 42
+apps/api/test/integration/users-repository-write.db.spec.ts
+  s_85c62c5c2bd069::t_c0a0e15637d339 1-111,119,125-137
+  s_85c62c5c2bd069::t_1e07071f4f3c55 112-118,120-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "6cb62c2af1a432cd48fe1fb4ae9823193867fc7a",
+  "prompts": {},
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
