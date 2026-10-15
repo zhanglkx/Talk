@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S12 已验收，`pnpm check` 已包含 API 测试；当前步骤 M1-S13，用户名规范化规则）。
+- 状态：**进行中**（M1-S13 已验收；当前步骤 M1-S14，`UsersRepository` 只读查询）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -62,7 +62,8 @@
 | M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | done |
 | M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | done |
 | M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | done |
-| M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | 待确认 |
+| M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | done |
+| M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | 测试准备中 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -249,6 +250,35 @@ M1-S12 验收证据（2026-10-15）：
   3. 助手运行该测试和 `pnpm check`，记录证据。
 - 注意事项：长度上限 32 与 users 表的 `VARCHAR(32)` 一致，函数先挡住超长输入，不必等数据库报错。密码不经过这个函数，按 PRD 原样使用、不 trim。
 - 验收：`username.spec.ts` 全部通过；`pnpm check` 退出码 0。
+
+M1-S13 测试准备记录（2026-10-15）：用户回复「开始 S13」，确认上面的规则。新增 `apps/api/test/username.spec.ts`，共 25 条：9 条合法输入（大写转小写、首尾空格/制表符/换行去掉、恰好 3 个和 32 个字符、纯数字）；1 条同一名字的 4 种写法得到同一个结果；15 条拒绝（空串、只有空白、2 个和 33 个字符及其去空白后的情况、中间空格、连字符、点、@、中文、emoji、全角字母、零宽空格、开尔文符号 U+212A）。用户已先建了空文件 `apps/api/src/modules/users/username.ts`。运行 `pnpm --filter @ledger/api exec vitest run test/username.spec.ts`：25 条全部失败，原因都是 `normalizeUsername` 尚未导出（`expected undefined to be type of 'function'`），还没有执行到规则断言。完整 API 测试中原有 33 条仍然通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S13 验收证据（2026-10-15）：
+- 实现：用户先建了空文件，随后明确要求助手代写 `apps/api/src/modules/users/username.ts`（含注释）。实现为：`trim()` 后用 `/^[A-Za-z0-9_]{3,32}$/` 检查，通过再 `toLowerCase()`，否则返回 `null`。
+- `pnpm --filter @ledger/api exec vitest run test/username.spec.ts`：25 条通过。
+- `pnpm check`：退出码 0；API 13 个文件、58 条通过，Web 1 个文件、2 条通过，build 完成。
+- 检查顺序的必要性：用 `node -e` 对比两种写法，开尔文符号开头的 `Kate`（U+212A）在「先转小写再检查」时得到 `kate`，在「先检查再转小写」时得到 `null`；测试中的对应用例能区分这两种实现。没有为此临时修改业务文件。
+- 没有验证到：函数还没有被 seed 或登录调用，接入在后续步骤验证。
+
+### M1-S14 详情
+
+- 来源：技术方案 §2「users.repository：按规范化用户名/会话身份参数化读取，显式选择公开字段」、§1「ready 与 SessionStore/Repository 入口都复用 ensureConnected，不能假设第一次业务请求前有人调用 ready」，以及 §8 真实 DB 矩阵的「Repo 首次请求无需先探针」。这是 M1-T04 的第二小步；写入（seed）与密码哈希留到下一步。
+- 计划：以后登录要按用户名取出密码哈希来比对，`me` 要按会话里的用户 ID 取出公开身份。两个查询都放进 `UsersRepository`，其他代码不直接写 SQL 或操作实体。
+  - 应用启动时不连数据库（S05），所以 Repository 每次查询前先 `await ensureConnected()`。第一次调用会建立连接，之后直接复用；数据库离线时错误原样抛给调用方，以后再映射成 503。
+  - 只查需要的列。公开身份只有 `id`、`username`，SQL 里不读 `password_hash`，返回普通对象而不是实体实例；这样哪怕以后有人把结果直接返回给浏览器，也带不出密码哈希。
+  - Repository 只做精确匹配，不再规范化用户名；调用方先用 S13 的 `normalizeUsername`。查询参数由 TypeORM 以 `$1` 形式传给数据库，不拼进 SQL 字符串。
+- 动作：
+  1. 助手先写测试：
+     - 离线 `apps/api/test/users.repository.spec.ts`：用真实的 `DatabaseModule` 和 `UsersModule` 组装容器，把 `ensureConnected` 换成一定失败的替身；两个方法都必须原样抛出这个错误，且不调用 `initialize`、不发出查询。
+     - 真实库 `apps/api/test/integration/users-repository.db.spec.ts`：在 `ledger_it` 写入两个虚构用户后，用真实的配置、`DatabaseModule`、`UsersModule` 启动容器，不调用 ready；检查第一次查询前未连接、两个并发的首次查询只连接一次；公开身份恰好是 `{ id, username }` 普通对象，且该查询的 SQL 不含 `password_hash`；登录凭据为 `{ id, username, passwordHash }`；不存在的 ID/用户名返回 `null`；大写用户名不匹配（说明规范化由调用方负责）；带引号的恶意输入只返回 `null`。
+     - 运行并确认失败原因是待实现的文件不存在。
+  2. 用户手写 `apps/api/src/modules/users/users.repository.ts`（`UsersRepository`，以及类型 `PublicUser`、`UserCredentials`）和 `apps/api/src/modules/users/users.module.ts`（`UsersModule`，导入 `DatabaseModule`，提供并导出 `UsersRepository`）。
+  3. 助手运行离线测试、`test:db` 和 `pnpm check`，记录证据。
+- 注意事项：
+  - 不使用 `TypeOrmModule.forFeature`。技术方案要求先在当前锁定版本上验证它在未连接时的行为；本步直接注入共享的 `DataSource`，在 `ensureConnected` 之后再 `getRepository(User)`，绕开这个未验证点。
+  - 不新建 DataSource、不调用 ready、不定时探测；本步不把 `UsersModule` 接入 `AppModule`，等登录模块使用它时再接入。
+  - 真实库测试结束时必须关闭 Nest 容器，释放连接；否则下一个测试文件重建 `ledger_it` 时会因「库正被使用」而失败。
+- 验收：离线测试通过；`DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` 通过且包含上述检查；`pnpm check` 退出码 0。
 
 ## 实际执行记录
 
