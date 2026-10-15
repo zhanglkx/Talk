@@ -1,0 +1,23 @@
+README.md
+  s_85c62c5c2bd069::t_78ee25eacefb42 12
+.kiro/steering/structure.md
+  s_85c62c5c2bd069::t_a8e1d3f6b2c17c 5
+docs/plan/M1/README.md
+  s_85c62c5c2bd069::t_b7b056ceacb53f 4,36,63-64,208-227,230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "0b4b9032a777ce07236bfe92d9a62bc9dbd55b60",
+  "prompts": {},
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
