@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S17 已验收，M1-R02 通过；当前步骤 M1-S18，会话期限规则，待确认）。
+- 状态：**进行中**（M1-S18 已验收；当前步骤 M1-S19，`SessionsRepository`，待确认）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -67,7 +67,8 @@
 | M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | done |
 | M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | done |
 | M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | done |
-| M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | 待确认 |
+| M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | done |
+| M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -386,8 +387,9 @@ M1-S17 验收证据（2026-10-15）：
 - 同步更新根 README 命令表、`docs/plan/README.md` 和 steering 中关于 seed 的说明。
 - 没有验证到：没有在开发库上运行（开发库尚未执行 migration，留到 M1-T10 演示步骤）。
 
-### M1-S18 详情（待用户确认）
+### M1-S18 详情
 
+- 用户回复「开始 S18」，确认以下设计。
 - 来源：M1 PRD §4「会话闲置 12 小时、绝对 7 天；到达任一截止点即失效」，技术方案 §5「touch 仅延长闲置期限，不越过 absolute_expires_at；读写均检查最早截止点」「以 SHA-256(Session ID) 为 DB 键」，§8 单元测试「绝对/闲置期限；注入时钟，不靠长时间 sleep」。这是 M1-T05（SessionStore）的第一小步：先把时间规则写成纯函数，Store 读写数据库时直接调用，规则只有一份。
 - 计划：新建 `apps/api/src/modules/auth/session-lifecycle.ts`，不连数据库、不读系统时间（「现在」由调用方传入），本步不引入 express-session、不写 Store。
 - 建议内容：
@@ -399,6 +401,29 @@ M1-S17 验收证据（2026-10-15）：
   - 所有函数返回新对象，不修改传入的对象；时间都用 `Date`。
 - 动作：用户确认后，助手先写 `apps/api/test/session-lifecycle.spec.ts`（固定的虚构时间，覆盖创建、续期、续期被绝对期限截住、恰好到期、多次续期累计也不超过 7 天、不修改入参、摘要长度与格式、同一 ID 摘要相同且不含原文），确认失败后由用户实现，再运行测试和 `pnpm check`。
 - 验收：`session-lifecycle.spec.ts` 全部通过；`pnpm check` 退出码 0。
+
+M1-S18 测试准备记录（2026-10-15）：
+- 新增 `apps/api/test/session-lifecycle.spec.ts`，13 条，全部使用固定的虚构时间 `2026-10-15T08:00:00.000Z`：两个常量为 12 小时和 7 天；创建时三个时间正确；刚登录、闲置截止前 1ms 有效，恰好到达和超过闲置截止失效；绝对截止早于闲置截止时同样会被检查；6 小时后续期，闲置截止移到续期后 12 小时、绝对截止不变；7 天前 2 小时续期时闲置截止被截在绝对截止；每 11 小时续期一次共 15 次，每次闲置截止都不晚于绝对截止，到第 7 天仍失效；续期返回新对象且不修改传入的对象；摘要与 SHA-256("abc") 公开测试向量一致、为 64 位小写 16 进制、同一 ID 结果相同、不同 ID 结果不同、不含原文。
+- 实现前运行：13 条均因 `session-lifecycle.ts` 不存在而失败；原有 94 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S18 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/modules/auth/session-lifecycle.ts`（两个常量、`startSessionWindow`、`touchSessionWindow`、`isSessionActive`、`hashSessionId`），并要求助手补充注释；助手只增改注释，没有改动代码逻辑。
+- `pnpm --filter @ledger/api exec vitest run test/session-lifecycle.spec.ts`：13 条通过。
+- `pnpm check`：退出码 0；API 17 个文件、107 条，Web 1 个文件、2 条，build 完成。文件通过 Prettier。
+- 没有验证到：还没有被 Store 或登录调用。
+
+### M1-S19 详情（待用户确认）
+
+- 来源：技术方案 §5「Store 的 get/set/destroy/touch 全部以 SHA-256(Session ID) 为 DB 键；明文 SID 不写 DB/日志」「读写均检查最早截止点」，§8 真实 DB 矩阵「Session FK、SID hash、touch 不延长绝对期限、destroy」。M1-T05 估 2 小时、允许拆成两张卡：本步只做数据库这一层，下一步再接 express-session。
+- 为什么先拆出这一层：express-session 是新依赖（2026-10-15 查询 npm 最新为 `1.19.0`，Nest 当前用 Express `5.2.1`），它的 Store 接口还要单独核对。先把「怎么按摘要读写 sessions 表」做好并在 `ledger_it` 上验证，接 express-session 时只需要做一层薄薄的转换。
+- 建议内容：`apps/api/src/modules/auth/sessions.repository.ts` 的 `SessionsRepository`，每个方法先 `ensureConnected()`，接收明文会话 ID 并在内部用 `hashSessionId` 转成摘要，SQL 一律带参数：
+  - `create(sessionId, { userId, data, window })`：插入一行；摘要已存在就报错（随机 ID 不应重复）。
+  - `findActive(sessionId, now)`：按摘要读一行，用 `isSessionActive` 判断，过期或不存在返回 `null`。期限规则只在 S18 一处，SQL 里不再写一遍。
+  - `update(sessionId, { data, window })`：更新 data 和三个时间，不改 `user_id`；用于续期和保存会话内容。
+  - `delete(sessionId)`：删除这一行，用于退出。
+  - 一个 `AuthModule`（导入 `DatabaseModule`，提供并导出 `SessionsRepository`）；本步不接入 `AppModule`。
+- 测试（助手先写）：离线覆盖连接失败原样抛出、不发 SQL；`ledger_it` 上覆盖库里存的是摘要而不是明文 ID、能按 ID 读回、过期（用传入的时间判断）返回 `null`、更新后读到新内容且 `user_id` 不变、续期写入后 CHECK 约束仍满足、删除后读不到、用户不存在时创建失败（外键）、SQL 中不出现明文 ID。
+- 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0。
 - 未修改业务代码。
 
 ## 实际执行记录
