@@ -10,7 +10,7 @@
     "dev": "pnpm --parallel --filter @ledger/api --filter @ledger/web run dev",
     "contracts": "pnpm --filter @ledger/api run openapi && pnpm --filter @ledger/web run generate:types",
     "typecheck": "pnpm --filter @ledger/api run typecheck && pnpm --filter @ledger/web run typecheck",
-    "test": "pnpm --filter @ledger/web run test",
+    "test": "pnpm --filter @ledger/api run test && pnpm --filter @ledger/web run test",
     "build": "pnpm --filter @ledger/api run build && pnpm --filter @ledger/web run build",
     "check": "pnpm run contracts && pnpm run typecheck && pnpm run test && pnpm run build"
   },
