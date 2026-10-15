@@ -39,7 +39,7 @@ M1 认证与数据库基础 → M2 分类／可靠创建／列表 → M3 编辑�
 
 阶段文档按代码基线 `4a3f08b` 编写：NestJS／React骨架、TypeORM／PostgreSQL接入、health／ready和最小契约生成。2026-10-09 核对时记录的是 `49410c2`，它只在旧分支 `feat/postgresql-minimal` 上，文件内容与 `4a3f08b` 完全相同。之后的实际进度只看各阶段 README。
 
-现有 `pnpm check` 依次跑 contracts → typecheck → 根 `pnpm test` → build；根 `pnpm test` 目前只跑 Web，API 测试要另跑 `pnpm --filter @ledger/api test`（M1-S12 计划把它纳入质量门）。仓库没有 `test:db`，也还没有 migration／seed／真实业务DB／E2E／评测脚本，需要各阶段先实现再使用。
+现有 `pnpm check` 依次跑 contracts → typecheck → 根 `pnpm test` → build；根 `pnpm test` 目前只跑 Web，API 测试要另跑 `pnpm --filter @ledger/api test`（M1-S12 计划把它纳入质量门）。仓库已有 `test:db`（API 的真实 PostgreSQL 集成测试，只连专用测试库 `ledger_it`，M1-S10 建立）；还没有给开发库用的 migration 脚本、seed、E2E 或评测脚本，需要各阶段先实现再使用。
 
 通用约束：只有虚构数据；NestJS/React 单体、本机 PostgreSQL、TypeORM、单一 DATABASE_URL；synchronize:false、migrationsRun:false；无 Docker、Redis 或新业务框架。金额分字符串，月份固定上海时区。文档中的目标文件、命令与验收不是已有实现。
 

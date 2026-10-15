@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S09 已验收；当前步骤 M1-S10，等待确认专用测试库）。
+- 状态：**进行中**（M1-S10 已验收；当前步骤 M1-S11，sessions 的 Entity 与 migration）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -59,7 +59,8 @@
 | M1-S07 | 为 TypeORM CLI 提供可加载的 DataSource 入口，加载时不连接数据库。 | done |
 | M1-S08 | 定义 users Entity，并让应用与 CLI 的共享配置注册同一实体；不自动建表。 | done |
 | M1-S09 | 编写首个 users migration，并在应用与 CLI 的共享配置注册；本步不连接或修改真实数据库。 | done |
-| M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | 环境确认中（尚未连接或执行迁移） |
+| M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | done |
+| M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -146,21 +147,66 @@ M1-S09 测试准备记录（2026-10-13）：新增 3 条离线测试，覆盖 up
 
 M1-S09 最终验收证据（2026-10-13）：用户已完成 users migration 及共享配置注册。针对性命令 `pnpm --filter @ledger/api test test/users-migration.spec.ts test/user.entity.spec.ts test/data-source.spec.ts` 为 3 个文件、16 条测试通过，包含新增 migration 的 3 条；`pnpm --filter @ledger/api test` 为 10 个文件、27 条通过，包含真实应用启动不连接及实际离线 contracts 命令的回归；`pnpm typecheck` 的 API/Web 检查均通过，两个业务文件无编辑器诊断。未修改用户业务实现、未执行真实 migration 或建表；本步仅验收离线声明和注册，不表示真实数据库约束生效。
 
-### M1-S10 环境确认与计划
+### M1-S10 详情
 
-- 目标：从离线结构检查推进到本机真实 PostgreSQL 的 users migration 验收。仅处理 users；sessions 尚未实现，不能据此将 M1-R01 整体标为通过。
-- 前置条件：用户确认独立、可用于测试的空数据库及其库名，允许在该库建表并写入虚构测试数据。不要向对话发送密码或连接串；由本机环境提供单一 DATABASE_URL。不沿用未知用途的默认库，也不删除已有表来制造空库。
+- 来源：M1-T03 的「空库/重复执行/约束通过；禁止开发库 reset」，承接 S09 的离线 migration。只处理 users；sessions 还没有 migration，所以本步通过也不能把 M1-R01 标为通过。
+- 计划：在专用测试库 `ledger_it` 上真实执行 users migration。S09 只用替身检查了「代码打算怎么建表」，本步要证明 PostgreSQL 真的建出了这张表、真的拦得住不合规的数据，而且重复执行不会出错。
+- 分工：用户已确认库名 `ledger_it`，并把集成测试的配置、脚本和重置方式交给助手决定。本步没有业务代码要写，测试、配置和脚本由助手完成；用户只负责以后按下面的命令运行。
 - 动作：
-  1. 确认专用库与操作授权，再准备隔离的 PostgreSQL 集成测试；普通离线 API 测试不得自动连接该库。
-  2. 构建 API，用编译后的 CLI DataSource 入口执行显式 TypeORM migration 命令；环境注入仅用于该测试进程，不修改用户的 .env。
-  3. 验证首次执行创建 users 并记录 migration；第二次执行没有待执行 migration、不重复建表；核对 UUID 主键、username 唯一及长度、非空、created_at 默认时间等真实约束。
-  4. 记录命令、结果和库名，不记录凭据；失败时先定位，不改用户业务代码。保持应用启动和 contracts 离线回归。
-- 注意事项：真实 down 会删除 users 及其数据，不作为默认测试清理动作；执行回滚或删库须另行明确授权。优先使用事务回滚清理虚构插入数据；测试连接必须在 finally 中关闭。保持 synchronize:false、migrationsRun:false，不实现 seed、Repository 或登录。
-- 当前证据：只有计划，尚未准备真实数据库测试、确认目标库或执行迁移。
+  1. 隔离：默认 `vitest.config.ts` 排除 `test/integration/**`；新增 `vitest.integration.config.ts`，只跑 `test/integration/`，不加载 `setup-env.ts`，文件不并行；`apps/api/package.json` 新增 `test:db` 脚本，`tsconfig.json` 把新配置纳入类型检查。
+  2. 防误删：测试开始前检查连接串，必须是本机回环地址（127.0.0.1、localhost、::1），库名必须是 `ledger_it`，且命令里的 `ALLOW_DATABASE_RESET` 必须等于这个库名；任一条不满足就在连库前报错退出。按技术方案 §4，仍只用 `DATABASE_URL` 这一个变量，由这条命令临时注入，不新增 `TEST_DATABASE_URL`。
+  3. 重置：通过维护库 `postgres` 执行 `DROP DATABASE IF EXISTS ledger_it` 和 `CREATE DATABASE ledger_it`，只碰 `ledger_it`，不加 `FORCE`；有其他连接占用时直接失败，不强行断开。
+  4. 迁移：构建 API，在 `apps/api` 下运行 `pnpm exec typeorm migration:run -d dist/database/cli-data-source.js`，也就是以后手动迁移用的同一条命令。
+  5. 检查：首次执行建出 users 和 TypeORM 的 migrations 记录表，记录一行 `CreateUsers1791849600000`；第二次执行输出「No migrations are pending」、没有建表语句、记录仍为一行；核对列类型、长度、非空、默认值、主键和唯一约束；在事务里插入虚构数据验证约束，每次都回滚。
+- 注意事项：测试只把库重置为空，不执行 down（down 会删表，它的演练另行授权）；结束时保留迁移后的库，方便用 `psql` 查看，下次运行会重新清空。构建会重写 `apps/api/dist`，正在运行的 `pnpm dev` 会因此重启 API。不修改 `.env`，不记录凭据，不改业务代码；保持 `synchronize:false`、`migrationsRun:false`，不实现 seed、Repository、sessions 或登录。
+- 验收：
+  - `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` 通过。
+  - 缺少 `ALLOW_DATABASE_RESET`、库名不是 `ledger_it` 时，`test:db` 在连库前失败。
+  - `pnpm --filter @ledger/api test` 仍为 10 个文件、27 条通过，不包含集成测试；`pnpm typecheck` 通过；生成契约无 Git 差异。
+
+M1-S10 环境记录（2026-10-15）：用户确认专用测试库名为 `ledger_it`。`psql` 只读连接显示该库不存在；助手执行 `createdb -w -h 127.0.0.1 -p 5432 ledger_it`，退出码为 0。复查结果：PostgreSQL 18.6，`ledger_it` 中非系统 schema 的表数量为 0；当前角色有 CREATE 和 CREATEDB 权限；本机连接无需在命令里写密码。未建表、未执行 migration，未修改 `.env`，也没有改动其他数据库。仍待用户确认三件事：集成测试与默认配置如何隔离（新增配置和脚本）、迁移命令是否做成脚本、每次测试怎么把库重置为空。之后用户把这三件事交给助手决定，结果写在上面的「动作」里。
+
+M1-S10 验收证据（2026-10-15）：
+- 新增文件：`apps/api/vitest.integration.config.ts`；`apps/api/test/integration/support/test-database.ts`（防误删检查、重建测试库、构建、执行迁移）；`apps/api/test/integration/test-database-guard.spec.ts`（8 条，只检查字符串、不连库）；`apps/api/test/integration/users-migration.db.spec.ts`（13 条，连接 `ledger_it`）。修改：默认 `vitest.config.ts` 排除 `test/integration/**`；`apps/api/package.json` 新增 `test:db`；`tsconfig.json` 纳入新配置。未改业务代码。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：2 个文件、21 条通过；紧接着再跑一次仍为 21 条通过，说明每次都从空库开始、结果可重复。
+- 覆盖内容：首次执行输出「1 migrations are new migrations must be executed」和 `CreateUsers1791849600000` 执行成功，含 `CREATE TABLE "users"`；public 下只有 `migrations`、`users` 两张表，迁移记录 1 行。第二次执行输出「No migrations are pending」，没有建表语句，记录仍为 1 行。列类型、长度 32、四列非空、`created_at` 默认 `now()`、`PRIMARY KEY (id)`、`UNIQUE (username)` 与 S09 计划一致。在回滚的事务里插入虚构数据：重复用户名报 23505，32 个字符可写入、33 个报 22001，id/username/password_hash 为 NULL 以及显式写入 NULL 的 created_at 都报 23502，省略 id 时不会自动生成（23502），非 UUID 报 22P02，省略 created_at 时取数据库 `now()`；最后 users 为 0 行。
+- 拒绝路径：不带 `ALLOW_DATABASE_RESET` 时，防误删检查报错，13 条真实库测试全部跳过，`ledger_it` 仍为 0 张表（未被连接或重建）；库名改为 `postgres` 时同样在连库前报错。另开一个 `psql` 连着 `ledger_it` 时，重建失败并报 `database "ledger_it" is being accessed by other users`，没有强行断开那个连接。
+- 手动再执行一次迁移命令（在 `apps/api` 下运行 `pnpm exec typeorm migration:run -d dist/database/cli-data-source.js`）：退出码 0，输出「No migrations are pending」，输出中不含连接串。运行结束后 `ledger_it` 保留迁移后的状态：`migrations`、`users` 两张表，users 为 0 行。
+- 回归：`pnpm --filter @ledger/api test` 为 10 个文件、27 条通过（不含集成测试）；`pnpm typecheck` 退出码 0；新文件通过 Prettier 检查；两份生成契约无 Git 差异。
+- 用户复跑（2026-10-15 15:57）：用户在自己的终端运行同一条 `test:db` 命令，2 个文件、21 条通过（真实库 13 条、防误删检查 8 条），耗时约 2.1 秒。
+- 没有验证到：down 回滚没有在真实库执行（需要另行授权）；sessions 还没有 migration，所以 M1-R01 仍未验证。
+
+### M1-S11 详情
+
+- 来源：M1-T03 的后一半「sessions migration 与实体」，以及技术方案 §3 的 sessions 表。做完这一步，M1-R01 的「空库执行后具备 users/sessions、重复执行不重复建表」就有了真实库证据；「应用启动不自动建表或迁移」已由 S05 证明。
+- 计划：sessions 表存「谁登录了、什么时候过期」。浏览器 Cookie 里只放一个随机的会话 ID（SID）；服务端用 SID 的 SHA-256 摘要当主键查这张表。这样即使数据库泄露，拿到的摘要也不能直接冒充 Cookie。本步只建表和映射，不写 SessionStore、不接 express-session、不做登录。
+- 表结构（用户确认后照此实现）：
+  - `session_key_hash CHAR(64) PRIMARY KEY`：SHA-256 的 16 进制字符串固定 64 个字符；明文 SID 不入库。
+  - `user_id UUID NOT NULL`，外键引用 `users(id)`，`ON DELETE CASCADE`：只保存已登录的会话，所以必须有用户；用户被删除时，他的会话一起删除，不留下指向不存在用户的登录状态。
+  - `data JSONB NOT NULL`：CSRF token 等会话状态；不放密码或账本数据。
+  - `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`；`last_seen_at`、`idle_expires_at`、`absolute_expires_at` 均为 `TIMESTAMPTZ NOT NULL`，由以后的 Store 写入，不设默认值。
+  - CHECK `idle_expires_at <= absolute_expires_at`：续期只能延长闲置期限，不能超过绝对期限；由数据库兜底，Store 写错时直接报错。
+  - 索引 `idle_expires_at`：有了上面的 CHECK，闲置期限总是最早的截止点，以后清理过期会话只需按这一列查找。
+- 动作：
+  1. 助手先写测试：离线的 Entity 元数据测试和 migration 声明测试（与 S08/S09 同样的方式）；扩展 `users-migration.db.spec.ts` 或新增 sessions 的真实库测试，覆盖两份 migration 首次执行、重复执行、列类型、主键、外键（用户不存在报 23503，删除用户时会话一起删除）、CHECK（报 23514）、索引存在、64 字符上限（65 个报 22001）。S10 的「只有 users 一张业务表、只有 1 条迁移记录」断言会随之改为两张表、两条记录。运行并确认失败原因是待实现的文件不存在。
+  2. 用户手写：
+     - `apps/api/src/modules/auth/session.entity.ts`，命名导出 `Session`，映射 sessions 表；`userId` 用普通 `@Column` 映射 `user_id`，不加 `@ManyToOne` 关系（Store 只需要用户 ID；外键由 migration 建）。属性名为 `sessionKeyHash`、`userId`、`data`、`createdAt`（`@CreateDateColumn`）、`lastSeenAt`、`idleExpiresAt`、`absoluteExpiresAt`（后三个用普通 `@Column`）。类上用 `@Check` 声明 CHECK，`idleExpiresAt` 上用 `@Index` 声明索引，名称和表达式与 migration 相同。
+     - `apps/api/src/database/migrations/1791936000000-create-sessions.ts`，命名导出 `CreateSessions1791936000000`；`up` 用 `createTable`，外键、CHECK、索引分别用 `TableForeignKey`、`TableCheck`、`TableIndex` 写进同一个 `Table`；`down` 只删除 sessions。列顺序：`session_key_hash`、`user_id`、`data`、`created_at`、`last_seen_at`、`idle_expires_at`、`absolute_expires_at`。约束名：外键 `fk_sessions_user_id`，CHECK `chk_sessions_idle_within_absolute`（表达式 `"idle_expires_at" <= "absolute_expires_at"`），索引 `idx_sessions_idle_expires_at`；主键名交给 TypeORM 生成。显式命名是为了以后的 migration 要修改或删除某个约束时，能直接写出它的名字。
+     - 共享配置 `database-options.ts` 的 `entities` 加入 `Session`，`migrations` 按时间顺序为 `[CreateUsers1791849600000, CreateSessions1791936000000]`。
+  3. 助手运行离线测试、`test:db`、完整 API 测试和 `pnpm typecheck`，记录证据；失败时报告断言和文件位置，由用户修改。
+- 注意事项：已经执行过的 users migration 不修改，sessions 另建新 migration（技术方案 §3：已执行的 migration 只能用新版本向前演进）。`CHAR(64)` 只限制最长长度，短的值会补空格存入；摘要格式由以后的 Store 保证，本步不加格式 CHECK。保持 `synchronize:false`、`migrationsRun:false`；不实现 Store、Repository、seed 或登录，不执行 down。
+- 验收：离线测试覆盖 Session 元数据、migration 声明和共享注册；`DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` 通过，且包含上面的外键、CHECK、索引与重复执行检查；`pnpm --filter @ledger/api test` 与 `pnpm typecheck` 通过，生成契约无差异。通过后把 M1-R01 改为通过并关联测试文件。
+
+M1-S11 测试准备记录（2026-10-15）：用户确认表结构，回复「开始 S11」。
+- 离线测试：新增 `apps/api/test/session.entity.spec.ts`（3 条：列映射、索引与 CHECK、共享注册 `[User, Session]`）和 `apps/api/test/sessions-migration.spec.ts`（3 条：建表声明含外键/CHECK/索引且 `createTable` 不跳过外键和索引、down 只删 sessions、迁移按 `[CreateUsers, CreateSessions]` 顺序注册）。`users-migration.spec.ts` 的注册测试从「迁移列表只有 users」改为「users 排第一」。
+- 真实库测试：S10 里「迁移执行」相关的 2 条移到新文件 `test/integration/migrations-run.db.spec.ts`，改为检查两份迁移（3 条：按时间顺序执行两份、只有 migrations/sessions/users 三张表和 2 条记录、第二次执行无待办）；`users-migration.db.spec.ts` 保留 users 的 11 条结构与约束检查；新增 `sessions-migration.db.spec.ts`（18 条：列、主键/外键/CHECK 定义、索引、合法写入与默认时间、用户不存在 23503、删除用户连带删除会话、闲置期限晚于绝对期限 23514、两者相等允许、主键重复 23505、65 个字符 22001、6 列 NULL 23502、显式 NULL created_at 23502、无残留数据）。重建库、构建、执行迁移和回滚事务的代码移到 `support/test-database.ts` 共用。期望的约束定义字符串先在 `ledger_it` 的一个回滚事务里用同结构探测表核对过，事务回滚后无残留。
+- 实现前运行：`pnpm --filter @ledger/api test` 为 12 个文件，原有 10 个文件 27 条通过，新增 6 条全部因 `session.entity.ts`、`1791936000000-create-sessions.ts` 不存在（Cannot find module）而失败。`test:db` 为 4 个文件、40 条：防误删 8 条和 users 11 条通过；`migrations-run` 3 条因只执行了 1 份迁移而失败（找不到「2 migrations are new」、表列表缺 sessions、记录数为 1）；sessions 18 条全部因 `relation "sessions" does not exist` 而失败。`pnpm typecheck` 通过。以上失败都来自待实现的文件，不是实现已通过的证据。未修改业务代码。
+
+M1-S11 实现进度（2026-10-15）：用户写好 `session.entity.ts` 的前四列，并明确要求助手补完其余部分和注释；助手补上 `@Check`、`@Index` 和三个期限列。`pnpm --filter @ledger/api exec vitest run test/session.entity.spec.ts`：列映射、索引与 CHECK 两条通过；共享注册一条失败（`entities` 仍只有 `User`），属于第三处待改的 `database-options.ts`。`pnpm typecheck` 通过，文件通过 Prettier 检查。下一处是 sessions migration，由用户手写。
 
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。S10 等待确认专用空测试库及真实数据库操作授权。尚未执行业务迁移或真实建表，阶段验收 M1-R01 仍未验证。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。2026-10-15 确认并建立专用测试库 `ledger_it`，新增 `test:db`，完成 M1-S10：users migration 在真实 PostgreSQL 上首次执行建表、重复执行不再建表，约束与计划一致（21 条通过，两次运行可重复）。sessions 尚未建表，阶段验收 M1-R01 仍未验证。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。

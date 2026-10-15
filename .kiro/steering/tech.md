@@ -13,7 +13,8 @@
 ## 命令实情
 
 - 根目录 `pnpm test` 只跑 Web；API 测试是 `pnpm --filter @ledger/api test`。所以 `pnpm check` 通过不代表 API 测试通过。
-- 目前没有 `test:db`、migration、seed 脚本。
+- `test:db`（`pnpm --filter @ledger/api run test:db`）跑 `vitest.integration.config.ts`，只包含 `apps/api/test/integration/`，不加载 `setup-env.ts`。运行时必须注入 `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it` 和 `ALLOW_DATABASE_RESET=ledger_it`：测试会经维护库 `postgres` 删除并重建 `ledger_it`（不加 FORCE，有其他连接时失败），然后构建 API，在 `apps/api` 下运行 `pnpm exec typeorm migration:run -d dist/database/cli-data-source.js`。主机不是本机回环、带查询参数、库名不是 `ledger_it` 或缺确认变量时，在连库前报错。默认 `vitest.config.ts` 排除 `test/integration/**`。
+- 还没有给开发库用的 migration 脚本和 seed 脚本。
 - API 的 `dev` 用 SWC 且带 `--no-type-check`，类型错误只在 `pnpm typecheck` 或 `build` 时暴露。
 - `pnpm contracts`：构建 API → 运行 `dist/generate-openapi.js` 写 `docs/openapi.json` → 生成 `apps/web/src/generated/api-types.ts`。不需要数据库在线，但需要格式合法的 `DATABASE_URL`。
 - `apps/api/test/contracts.spec.ts` 会执行真实的 `pnpm contracts`，重写上面两份生成文件；跑完用 `git status` 确认没有意外差异。
