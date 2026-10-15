@@ -1,0 +1,25 @@
+apps/api/src/modules/users/users.repository.ts
+  s_85c62c5c2bd069::t_eb51a421f3d85c 1,5,14,23,30,34,46,56,59-61
+  h_67f487dacd1d7d 58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "b97e75b7a67e3a48dc431f100bc4b3fbd1ae2cbe",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
