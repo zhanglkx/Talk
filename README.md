@@ -60,13 +60,13 @@ curl http://127.0.0.1:3000/internal/ready
 | `pnpm dev` | 并行启动 API 与 Web |
 | `pnpm contracts` | 重新生成 OpenAPI，并据此生成 Web 类型 |
 | `pnpm typecheck` | API 与 Web 类型检查 |
-| `pnpm test` | Web 单元测试（目前不含 API） |
-| `pnpm --filter @ledger/api test` | API 单元与 HTTP 测试；其中契约测试会真的跑 `pnpm contracts`，重建 `apps/api/dist`（正在运行的 `pnpm dev` 会因此重启 API）并重写两份生成文件 |
+| `pnpm test` | 先跑 API 单元与 HTTP 测试，再跑 Web 单元测试；API 失败时不再往下跑。不含 `test:db` |
+| `pnpm --filter @ledger/api test` | 只跑 API 单元与 HTTP 测试；其中契约测试会真的跑 `pnpm contracts`，重建 `apps/api/dist`（正在运行的 `pnpm dev` 会因此重启 API）并重写两份生成文件 |
 | `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` | 真实 PostgreSQL 集成测试：先删除并重建 `ledger_it`，再构建 API、执行 migration 并检查表结构；只接受本机的 `ledger_it`，运行时不能有其他连接占用该库 |
 | `pnpm build` | 构建 API 与 Web |
-| `pnpm check` | 依次跑 contracts、typecheck、`pnpm test`、build；不含 API 测试 |
+| `pnpm check` | 依次跑 contracts、typecheck、`pnpm test`（API + Web）、build；不含 `test:db`，需要另外运行 |
 
-`pnpm test` 和 API 测试都不连接数据库；API 测试固定使用一个连不上的本机地址，不使用 `.env` 里的连接串。真实数据库测试只走 `test:db`，第一次运行前要先建好测试库：`createdb ledger_it`。进度与证据见 [M1 进度](docs/plan/M1/README.md)。
+`pnpm test` 不连接数据库；其中的 API 测试固定使用一个连不上的本机地址，不使用 `.env` 里的连接串。真实数据库测试只走 `test:db`，第一次运行前要先建好测试库：`createdb ledger_it`。进度与证据见 [M1 进度](docs/plan/M1/README.md)。
 
 ## 目录
 

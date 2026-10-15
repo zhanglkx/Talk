@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S11 已验收，M1-R01 通过；当前步骤 M1-S12，把 API 测试纳入 `pnpm check`）。
+- 状态：**进行中**（M1-S12 已验收，`pnpm check` 已包含 API 测试；当前步骤 M1-S13，用户名规范化规则）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -61,7 +61,8 @@
 | M1-S09 | 编写首个 users migration，并在应用与 CLI 的共享配置注册；本步不连接或修改真实数据库。 | done |
 | M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | done |
 | M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | done |
-| M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | 待确认分工 |
+| M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | done |
+| M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -223,11 +224,35 @@ M1-S11 验收证据（2026-10-15）：
   2. 运行 `pnpm test` 与 `pnpm check`，记录文件数、测试数和退出码。
   3. 临时放一个必定失败的 API 测试，确认 `pnpm check` 返回非 0；删除后再跑一次，恢复通过。
 - 注意事项：API 测试中的 contracts 测试会执行真实的 `pnpm contracts` 并重建 `apps/api/dist`，所以 check 会多花几秒，正在运行的 `pnpm dev` 也会重启一次 API。普通 API 测试仍固定连不上数据库，check 不依赖 PostgreSQL。
-- 验收：`pnpm test` 包含 API 12 个文件、33 条和 Web 测试且全部通过；`pnpm check` 退出码 0；临时失败的 API 测试能让 `pnpm check` 失败；临时文件删除后工作区无多余差异。
+- 验收：`pnpm test` 包含 API 12 个文件、33 条和 Web 测试且全部通过；`pnpm check` 退出码 0；临时失败的 API 测试能让 `pnpm check` 失败；临时文件删除后工作区无多余差异。已通过，证据见下。
+
+M1-S12 验收证据（2026-10-15）：
+- 用户把这一步交给助手处理。改动前基线：`pnpm check` 退出码 0，但测试阶段只运行了 `apps/web` 的 1 个文件、2 条，API 测试没有运行。
+- 根 `package.json` 的 `test` 改为 `pnpm --filter @ledger/api run test && pnpm --filter @ledger/web run test`。
+- `pnpm test`：退出码 0，API 12 个文件、33 条通过，随后 Web 1 个文件、2 条通过。`pnpm check`：退出码 0，依次完成 contracts、typecheck、API 测试、Web 测试和 build。
+- 拦截验证：临时新增 `apps/api/test/zz-gate-probe.spec.ts`（断言 `1` 等于 `2`），`pnpm check` 退出码 1，报告 1 个失败、33 个通过；输出中没有 Web 测试和 build 的记录，说明在 API 失败处停下。删除该文件后再跑 `pnpm check`，退出码 0，工作区只剩 `package.json` 和文档的改动。
+- 同步更新了根 README、`docs/plan/README.md`、M1 技术方案与执行计划、M5 技术方案和 steering 中「根 `pnpm test` 只跑 Web」的旧说明。
+- 未改业务代码；`test:db` 仍不在 check 中。
+
+### M1-S13 详情
+
+- 来源：M1 PRD §4 的用户名契约「trim 后的小写 ASCII，3～32 个字符，仅 a-z、0-9、下划线；seed 和登录采用同一规则」，以及技术方案 §8 单元测试矩阵的「用户名规范化」。它是 M1-T04（UserRepository 与 seed）的第一小步：seed 写入、登录查询都要先把用户名变成同一种形式，否则 `Alice` 和 `alice` 会被当成两个账号，或者登录时查不到。
+- 计划：写一个不连数据库的纯函数，把用户输入变成库里保存的用户名；不合法时明确拒绝。本步不写 Repository、seed、密码哈希或登录接口，也不接入 Zod（输入 Schema 留到登录接口那一步）。
+- 建议规则（开始前请用户确认）：
+  - 文件 `apps/api/src/modules/users/username.ts`，导出 `normalizeUsername(input: string): string | null`；合法时返回规范化后的用户名，不合法时返回 `null`，不抛异常。
+  - 先去掉首尾空白；再检查剩下的内容是否只由 3～32 个 `A-Z`、`a-z`、`0-9`、`_` 组成；通过后再转小写。
+  - 先检查再转小写，原因是有些非 ASCII 字符转小写后会变成 ASCII，例如开尔文符号 `K`（U+212A）转小写后是普通的 `k`。如果先转小写再检查，它就会被当成合法输入，和真正的 `k` 撞成同一个账号。
+  - 中间的空格、连字符、点、中文和 emoji 都不合法。
+- 动作：
+  1. 助手先写 `apps/api/test/username.spec.ts`：合法输入（含大写、首尾空白、恰好 3 和 32 个字符）返回期望值；2 个和 33 个字符、空串、只有空白、中间空格、非法符号、中文、开尔文符号等返回 `null`；同一用户名的不同写法得到同一个结果。运行并确认因文件不存在而失败。
+  2. 用户手写 `username.ts`。
+  3. 助手运行该测试和 `pnpm check`，记录证据。
+- 注意事项：长度上限 32 与 users 表的 `VARCHAR(32)` 一致，函数先挡住超长输入，不必等数据库报错。密码不经过这个函数，按 PRD 原样使用、不 trim。
+- 验收：`username.spec.ts` 全部通过；`pnpm check` 退出码 0。
 
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。2026-10-15 确认并建立专用测试库 `ledger_it`，新增 `test:db`，完成 M1-S10：users migration 在真实 PostgreSQL 上首次执行建表、重复执行不再建表，约束与计划一致（21 条通过，两次运行可重复）。sessions 尚未建表，阶段验收 M1-R01 仍未验证。同日完成 M1-S11：sessions 的 Entity 与 migration 在 `ledger_it` 上验证通过（API 测试 12 个文件 33 条，`test:db` 4 个文件 40 条，连续两次可重复），M1-R01 通过。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。2026-10-15 确认并建立专用测试库 `ledger_it`，新增 `test:db`，完成 M1-S10：users migration 在真实 PostgreSQL 上首次执行建表、重复执行不再建表，约束与计划一致（21 条通过，两次运行可重复）。sessions 尚未建表，阶段验收 M1-R01 仍未验证。同日完成 M1-S11：sessions 的 Entity 与 migration 在 `ledger_it` 上验证通过（API 测试 12 个文件 33 条，`test:db` 4 个文件 40 条，连续两次可重复），M1-R01 通过。随后完成 M1-S12：根 `pnpm test` 先跑 API 再跑 Web，`pnpm check` 因此包含 API 测试，并验证 API 测试失败会让 check 失败。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
