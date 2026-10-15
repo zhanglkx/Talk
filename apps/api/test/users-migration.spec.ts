@@ -104,21 +104,21 @@ describe('CreateUsers migration', () => {
     expect(DataSource.prototype.initialize).not.toHaveBeenCalled()
   })
 
-  it('registers the same migration in shared options and the unconnected CLI data source', async () => {
+  it('registers the users migration first in shared options and the unconnected CLI data source', async () => {
     const CreateUsers = await loadMigration()
     const options = createDatabaseOptions(databaseUrl)
     const dataSource = createCliDataSource(databaseUrl)
 
+    // 完整的迁移列表和顺序由 sessions-migration.spec.ts 检查；这里只要求 users 排第一。
+    expect(options.migrations[0]).toBe(CreateUsers)
     expect(options).toMatchObject({
-      migrations: [CreateUsers],
       manualInitialization: true,
       synchronize: false,
       migrationsRun: false,
     })
-    expect(dataSource.options.migrations).toEqual([CreateUsers])
+    expect(dataSource.options.migrations).toEqual(options.migrations)
     const metadataDataSource = new MetadataDataSource(options)
     await metadataDataSource.buildOfflineMetadata()
-    expect(metadataDataSource.migrations).toHaveLength(1)
     expect(metadataDataSource.migrations[0]).toBeInstanceOf(CreateUsers)
     expect(metadataDataSource.isInitialized).toBe(false)
     expect(dataSource.isInitialized).toBe(false)
