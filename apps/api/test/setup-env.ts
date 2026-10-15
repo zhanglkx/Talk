@@ -3,3 +3,5 @@
 // @nestjs/config 默认以进程环境变量优先，仓库根 .env 里的连接串同样不会生效。
 // 真实数据库测试不能加载这个文件，否则地址会被改回这里。
 process.env.DATABASE_URL = 'postgresql://127.0.0.1:1/ledger_unit_offline'
+// 会话签名密钥同样固定为虚构值，终端或 .env 里的真实密钥不会进入测试。
+process.env.SESSION_SECRET = 'fixture-unit-test-session-secret-00000000'
