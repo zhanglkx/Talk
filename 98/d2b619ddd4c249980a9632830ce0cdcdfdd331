@@ -1,0 +1,25 @@
+apps/api/src/modules/auth/session.entity.ts
+  s_85c62c5c2bd069::t_0885044795a4b6 1-7,10-11,15-16,20,24,27-43
+  h_67f487dacd1d7d 8-9,12-14,17-19,21-23,25-26,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "98d2b619ddd4c249980a9632830ce0cdcdfdd331",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
