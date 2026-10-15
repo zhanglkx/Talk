@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S10 已验收；当前步骤 M1-S11，sessions 的 Entity 与 migration）。
+- 状态：**进行中**（M1-S11 已验收，M1-R01 通过；当前步骤 M1-S12，把 API 测试纳入 `pnpm check`）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -33,7 +33,7 @@
 
 | 编号 | 验收条件 | 当前状态 |
 |---|---|---|
-| M1-R01 | 空库显式执行 migration 后具备 users/sessions；再次执行不重复建表；应用启动不自动建表或迁移。 | 未验证 |
+| M1-R01 | 空库显式执行 migration 后具备 users/sessions；再次执行不重复建表；应用启动不自动建表或迁移。 | 通过（2026-10-15，M1-S11）：`apps/api/test/integration/migrations-run.db.spec.ts`、`users-migration.db.spec.ts`、`sessions-migration.db.spec.ts`；启动不连库、不迁移见 `apps/api/test/database-startup.spec.ts`（M1-S05）。down 未在真实库演练。 |
 | M1-R02 | seed 建立两个虚构账号；只保存密码哈希，不把密码写入代码、文档或日志；再次执行不悄悄重置已有密码。 | 未验证 |
 | M1-R03 | 正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性。 | 未验证 |
 | M1-R04 | me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户。 | 未验证 |
@@ -60,7 +60,8 @@
 | M1-S08 | 定义 users Entity，并让应用与 CLI 的共享配置注册同一实体；不自动建表。 | done |
 | M1-S09 | 编写首个 users migration，并在应用与 CLI 的共享配置注册；本步不连接或修改真实数据库。 | done |
 | M1-S10 | 在经确认的专用空测试库显式执行 users migration，验证重复执行和真实数据库约束。 | done |
-| M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | 测试已就绪，等待用户实现 |
+| M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | done |
+| M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | 待确认分工 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -204,9 +205,29 @@ M1-S11 测试准备记录（2026-10-15）：用户确认表结构，回复「开
 
 M1-S11 实现进度（2026-10-15）：用户写好 `session.entity.ts` 的前四列，并明确要求助手补完其余部分和注释；助手补上 `@Check`、`@Index` 和三个期限列。`pnpm --filter @ledger/api exec vitest run test/session.entity.spec.ts`：列映射、索引与 CHECK 两条通过；共享注册一条失败（`entities` 仍只有 `User`），属于第三处待改的 `database-options.ts`。`pnpm typecheck` 通过，文件通过 Prettier 检查。下一处是 sessions migration，由用户手写。
 
+M1-S11 验收证据（2026-10-15）：
+- 实现：用户手写 sessions migration 和 `database-options.ts` 的注册（已自行提交为 `98d2b61`、`fd17fdf`）；按用户要求，助手补完 `session.entity.ts`，并精简了 migration 与 `database-options.ts` 中过时或复制来的注释，没有改动代码逻辑。
+- `pnpm --filter @ledger/api test`：12 个文件、33 条通过（含新增的 Session 元数据 3 条、sessions migration 声明 3 条）。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：4 个文件、40 条通过，连续两次结果相同。其中 `migrations-run.db.spec.ts` 3 条（空库上按 users → sessions 顺序执行两份迁移；只有 migrations/sessions/users 三张表、2 条迁移记录；第二次执行「No migrations are pending」且不建表），`sessions-migration.db.spec.ts` 18 条（列与默认值、主键/外键 `ON DELETE CASCADE`/CHECK 的定义、索引；外键 23503、连带删除、CHECK 23514、相等允许、主键重复 23505、超长 22001、6 列 NULL 与显式 NULL created_at 23502、无残留），`users-migration.db.spec.ts` 11 条，防误删 8 条。
+- 运行后 `ledger_it`：migrations、sessions、users 三张表；迁移记录依次为 `CreateUsers1791849600000`、`CreateSessions1791936000000`；users、sessions 均为 0 行。
+- `pnpm typecheck` 退出码 0；两份生成契约无 Git 差异；本步改动的文件均通过 Prettier。`database.module.ts`、`internal.controller.ts` 有 Prettier 格式差异，来自 `8d38446`，与本步无关，未改动。
+- 没有验证到：两份 migration 的 down 都没有在真实库执行（会删表，需另行授权）。
+
+### M1-S12 详情
+
+- 来源：技术方案「pnpm check 目前不含 API 测试（M1-S12 纳入）」和执行计划的提交前检查。以后每一步都会加 API 测试；`pnpm check` 不跑它们，就可能出现 check 通过、API 实际已坏的情况。
+- 计划：根目录 `pnpm test` 先跑 API 测试，再跑 Web 测试；`pnpm check` 本身调用 `pnpm run test`，所以无需另改。`test:db` 不进入 check：它会删除并重建 `ledger_it`，需要本机数据库在线和显式确认，不能藏在一条日常命令里。
+- 分工：只改根目录 `package.json` 的一个脚本，并同步 README、steering 和计划文档中「根 `pnpm test` 只跑 Web」的说明；没有业务代码。按协作规则，脚本改动需要用户确认由谁来改。
+- 动作：
+  1. 根 `test` 改为 `pnpm --filter @ledger/api run test && pnpm --filter @ledger/web run test`；用 `&&`，API 测试失败时直接停止并返回非 0。
+  2. 运行 `pnpm test` 与 `pnpm check`，记录文件数、测试数和退出码。
+  3. 临时放一个必定失败的 API 测试，确认 `pnpm check` 返回非 0；删除后再跑一次，恢复通过。
+- 注意事项：API 测试中的 contracts 测试会执行真实的 `pnpm contracts` 并重建 `apps/api/dist`，所以 check 会多花几秒，正在运行的 `pnpm dev` 也会重启一次 API。普通 API 测试仍固定连不上数据库，check 不依赖 PostgreSQL。
+- 验收：`pnpm test` 包含 API 12 个文件、33 条和 Web 测试且全部通过；`pnpm check` 退出码 0；临时失败的 API 测试能让 `pnpm check` 失败；临时文件删除后工作区无多余差异。
+
 ## 实际执行记录
 
-2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。2026-10-15 确认并建立专用测试库 `ledger_it`，新增 `test:db`，完成 M1-S10：users migration 在真实 PostgreSQL 上首次执行建表、重复执行不再建表，约束与计划一致（21 条通过，两次运行可重复）。sessions 尚未建表，阶段验收 M1-R01 仍未验证。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
+2026-10-12 开始实施。2026-10-13 完成 M1-S01 到 M1-S09。S09 针对性测试 16 条通过，完整 API 测试 10 个文件、27 条通过，API/Web 类型检查通过，包含启动及实际 contracts 的离线回归。2026-10-15 确认并建立专用测试库 `ledger_it`，新增 `test:db`，完成 M1-S10：users migration 在真实 PostgreSQL 上首次执行建表、重复执行不再建表，约束与计划一致（21 条通过，两次运行可重复）。sessions 尚未建表，阶段验收 M1-R01 仍未验证。同日完成 M1-S11：sessions 的 Entity 与 migration 在 `ledger_it` 上验证通过（API 测试 12 个文件 33 条，`test:db` 4 个文件 40 条，连续两次可重复），M1-R01 通过。之后在此维护：实际日期与工时、应用/迁移/fixture版本、专用测试库名（不写连接串）、运行命令、通过/失败摘要、测试位置或报告链接、未完成项与阶段阻塞。
 
 - [ ] 前置门已核对。
 - [ ] PRD 各编号已有实际测试证据。
