@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:db": "vitest run --config vitest.integration.config.ts",
+    "seed:demo": "pnpm run build && node dist/scripts/seed-demo-users.js",
     "openapi": "pnpm run build && node dist/generate-openapi.js"
   },
   "dependencies": {
