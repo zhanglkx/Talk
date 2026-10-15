@@ -1,4 +1,4 @@
-// users 表的首个版本化迁移：Entity 描述属性映射，本文件负责实际建表和回滚。
+// sessions 表的版本化迁移：外键引用 users，所以排在 users 迁移之后。
 // 导入或注册此类不会执行迁移；只能由显式迁移操作调用，应用启动不自动改表。
 import { Table } from 'typeorm'
 // 接口只用于类型检查，编译后不会作为运行时代码保留。
@@ -22,8 +22,7 @@ export class CreateSessions1791936000000 implements MigrationInterface {
             isPrimary: true,
             isNullable: false,
           },
-          // 会话属于哪个用户。只映射成普通列，不加外键关系，读写会话只需要用户 ID。
-          // 外键（用户必须存在、删用户时连带删会话）由 migration 在数据库里建立。
+          // 会话所属用户；外键见下方 foreignKeys。
           {
             name: 'user_id',
             type: 'uuid',
@@ -45,22 +44,38 @@ export class CreateSessions1791936000000 implements MigrationInterface {
           {
             name: 'last_seen_at',
             type: 'timestamptz',
-            default: 'now()',
             isNullable: false,
           },
           {
             name: 'idle_expires_at',
             type: 'timestamptz',
-            default: 'now()',
             isNullable: false,
           },
           {
             name: 'absolute_expires_at',
             type: 'timestamptz',
-            default: 'now()',
             isNullable: false,
           },
         ],
+        // user_id 必须是已有用户；删除用户时连带删除其会话。
+        foreignKeys: [
+          {
+            name: 'fk_sessions_user_id',
+            columnNames: ['user_id'],
+            referencedTableName: 'users',
+            referencedColumnNames: ['id'],
+            onDelete: 'CASCADE',
+          },
+        ],
+        // 续期不能越过绝对期限。
+        checks: [
+          {
+            name: 'chk_sessions_idle_within_absolute',
+            expression: '"idle_expires_at" <= "absolute_expires_at"',
+          },
+        ],
+        // 清理过期会话时按闲置期限查找。
+        indices: [{ name: 'idx_sessions_idle_expires_at', columnNames: ['idle_expires_at'] }],
       }),
     )
   }
