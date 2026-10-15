@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S13 已验收；当前步骤 M1-S14，`UsersRepository` 只读查询）。
+- 状态：**进行中**（M1-S14 已验收；当前步骤 M1-S15，密码哈希与校验）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -63,7 +63,8 @@
 | M1-S11 | 编写 sessions 的 Entity 与 migration，并在 `ledger_it` 上验证建表、外键、到期约束和重复执行。 | done |
 | M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | done |
 | M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | done |
-| M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | 测试准备中 |
+| M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | done |
+| M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | 待用户选择哈希实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -279,6 +280,36 @@ M1-S13 验收证据（2026-10-15）：
   - 不新建 DataSource、不调用 ready、不定时探测；本步不把 `UsersModule` 接入 `AppModule`，等登录模块使用它时再接入。
   - 真实库测试结束时必须关闭 Nest 容器，释放连接；否则下一个测试文件重建 `ledger_it` 时会因「库正被使用」而失败。
 - 验收：离线测试通过；`DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` 通过且包含上述检查；`pnpm check` 退出码 0。
+
+M1-S14 测试准备记录（2026-10-15）：
+- 新增离线 `apps/api/test/users.repository.spec.ts`（2 条，两个方法各一条）和真实库 `apps/api/test/integration/users-repository.db.spec.ts`（7 条：首次查询自行连接且并发只连一次、公开身份为普通对象且 SQL 不含 `password_hash`、不存在的 ID 返回 null、凭据为普通对象、不存在的用户名返回 null、大写或带空格的用户名不匹配、恶意引号输入作为参数传递且返回 null）。SQL 通过监听 TypeORM 的 `PostgresQueryRunner.prototype.query` 收集。
+- 离线运行：2 条均因 `users.module.ts` 不存在（Cannot find module）而失败；完整 API 测试中原有 58 条仍然通过；`pnpm typecheck` 通过；两个测试文件通过 Prettier。
+- 真实库运行被阻塞：`test:db` 的 4 个真实库文件都在重建 `ledger_it` 时报 `database "ledger_it" is being accessed by other users`，防误删 8 条通过、其余 39 条跳过。`pg_stat_activity` 显示占用者是两个 DBeaver 连接（17:08 建立，空闲）。按 S10 的设计不强行断开，等用户在 DBeaver 中断开 `ledger_it` 后重跑，确认新增 7 条按预期失败。
+- 用户断开 DBeaver 后重跑（17:3x）：`ledger_it` 上无其他连接；`test:db` 为 5 个文件，原有 40 条通过，新增 `users-repository.db.spec.ts` 的 7 条因 `Nest cannot create the RootTestModule instance` 全部跳过——此时用户已建 `users.repository.ts`，`users.module.ts` 仍为空文件，`UsersModule` 未导出。运行结束后 `ledger_it` 无残留连接。
+
+M1-S14 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/modules/users/users.repository.ts` 与 `users.module.ts`。评审时指出并由用户修正：`DataSource` 原从 `typeorm/browser/data-source/index.js` 导入（浏览器构建，带装饰器的构造参数会让这条导入保留到运行时，进程里会多加载一份 TypeORM），改为从 `typeorm` 导入；删除未使用的 `Inject`；实体改用 `@/` 别名导入。构建产物中已无 `typeorm/browser` 引用。
+- `pnpm --filter @ledger/api exec vitest run test/users.repository.spec.ts`：2 条通过（连接失败时两个方法都原样抛出同一个错误，不调用 `initialize`、不发 SQL）。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：5 个文件、47 条通过，连续两次相同；其中 `users-repository.db.spec.ts` 7 条覆盖首次查询自行连接且并发只调用一次 `initialize`、公开身份 `toStrictEqual({ id, username })` 且 SQL 不含 `password_hash`、凭据为普通对象、不存在返回 `null`、大写或带空格不匹配、带引号的输入不出现在 SQL 文本中。运行后 `ledger_it` 无残留连接。
+- `pnpm check`：退出码 0；API 14 个文件、60 条，Web 1 个文件、2 条，build 完成。相关文件通过 Prettier；生成契约无差异。
+- 没有验证到：`UsersModule` 还没有接入 `AppModule`，HTTP 路径上的调用留给登录步骤；数据库离线时映射为 503 也留到后续步骤。
+
+### M1-S15 详情
+
+- 来源：M1 技术方案 §4「seed 使用 Argon2id 异步哈希」、§6「Argon2id 参数按维护库推荐与本机耗时测量选择」，PRD M1-R02「只保存密码哈希」。这是 seed 之前的一小步：seed 写入哈希、登录校验哈希都要用同一套函数。
+- 计划：提供两个异步函数，`hashPassword(password)` 返回可直接存进 `users.password_hash` 的字符串，`verifyPassword(storedHash, password)` 返回是否匹配。哈希字符串采用通用的 PHC 格式（`$argon2id$v=19$m=…,t=…,p=…$盐$哈希`），参数和随机盐都写在里面，以后调整参数也能校验旧哈希。本步不写 seed、不改数据库、不做登录。
+- 待用户选择实现方式：
+  - A（建议）：新增依赖 `@node-rs/argon2`，精确锁定 `2.2.2`（2026-10-15 查询 npm 的最新版本，由 napi-rs 组织维护）。它提供 `hash`/`verify`，自己生成盐、编码 PHC 字符串、做常量时间比较；按平台下载预编译文件，没有安装脚本。安装若被 `pnpm-workspace.yaml` 的发布时长限制挡住，需要另行确认是否加例外。
+  - B：不加依赖，使用 Node 26 自带的 `crypto.argon2`。本机 Node 26.11.1 上可用，调用时没有实验性警告（文档稳定性级别开工前再核对）；但它只返回原始哈希字节，PHC 编码、解析和常量时间比较要自己写，出错面更大。
+- 参数：以 OWASP 建议的最低档 `m=19456`（19 MiB）、`t=2`、`p=1` 为起点，测量本机单次哈希耗时并记录；不照抄库的默认值，也不在文档里编造测量结果。
+- 动作：
+  1. 用户选定 A 或 B；选 A 时由助手安装依赖并记录 `package.json` 与锁文件的变化。
+  2. 助手先写 `apps/api/test/password-hasher.spec.ts`：输出是 argon2id 的 PHC 字符串且带上述参数；同一密码两次哈希结果不同（随机盐）；正确密码校验为 `true`，错误密码、多一个空格、大小写不同均为 `false`；中文等非 ASCII 密码可用；哈希字符串里不包含明文；格式损坏的哈希返回 `false` 而不是让进程崩溃。运行并确认因文件不存在而失败。
+  3. 用户手写 `apps/api/src/modules/auth/password-hasher.ts`。
+  4. 助手运行测试、测量耗时、运行 `pnpm check`，记录证据。
+- 注意事项：密码原样参与哈希，不 trim、不转小写（PRD §4）；测试只用虚构的固定密码，不写进日志；函数里不打印密码或哈希。只用异步版本，同步版本会在计算的几十毫秒里卡住整个服务器。
+- 验收：`password-hasher.spec.ts` 全部通过；记录本机单次哈希耗时；`pnpm check` 退出码 0。
+- 未修改业务代码。
 
 ## 实际执行记录
 
