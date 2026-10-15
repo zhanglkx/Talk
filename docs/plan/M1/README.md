@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S19 已验收；当前步骤 M1-S20，express-session 的 Store 适配，待确认）。
+- 状态：**进行中**（M1-S20 已验收；当前步骤 M1-S21，把 express-session 挂到应用上，待确认）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -69,7 +69,8 @@
 | M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | done |
 | M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | done |
 | M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
-| M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | 待确认 |
+| M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
+| M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -440,14 +441,50 @@ M1-S19 验收证据（2026-10-15）：
 - `pnpm check`：退出码 0；API 18 个文件、111 条，Web 1 个文件、2 条，build 完成。`modules/auth` 通过 Prettier；生成契约无差异。
 - 没有验证到：过期会话不会自动删除（清理任务不在 M1 范围内，需要时另行规划）；`AuthModule` 尚未接入 `AppModule`。
 
-### M1-S20 详情（待用户确认）
+### M1-S20 详情
 
+- 用户回复「开始 S20」。
 - 来源：技术方案 §5「采用维护中的 express-session；持久化 Store 适配层复用项目 DataSource……不符合要求则以清晰、可测试的薄适配实现 Store 接口」「set 写入已认证会话；saveUninitialized:false 不保存匿名会话；touch 仅延长闲置期限」。这是 M1-T05 的后一半。
-- 计划：新增依赖 `express-session`（2026-10-15 查询 npm 最新为 `1.19.0`，精确锁定）及其类型包；新建 `apps/api/src/modules/auth/session-store.ts`，实现 express-session 要求的 Store 接口，内部只调用 `SessionsRepository` 和 S18 的期限函数，时钟由构造参数传入。本步不挂到 Express 上、不做登录接口。
-- 开工前要先核对（在锁定版本的源码上确认，不凭记忆）：express-session 在什么情况下调用 `set` 和 `touch`；`get` 返回的对象必须带哪些字段（例如 `cookie`），这些字段从数据库里的哪些值还原；回调式接口如何把数据库错误传回去。核对结果写进本节后再写测试。
-- 初步思路：`get` 用 `findActive`，没有就返回空；`set` 只接受带 `userId` 的会话，已有会话只更新内容并续期、不改绝对期限，没有会话才创建；`destroy` 用 `delete`；`touch` 读出当前期限后用 `touchSessionWindow` 续期。
-- 验收：离线与 `ledger_it` 上的测试通过（具体条目在核对后补充）；`pnpm check` 退出码 0。
-- 未修改业务代码。
+- 依赖：`pnpm --filter @ledger/api add express-session@1.19.0 --save-exact`、`pnpm --filter @ledger/api add -D @types/express-session@1.19.0 --save-exact`。锁文件新增 express-session 的 7 个运行时依赖包和类型包带来的 `@types/express@5.0.6` 等类型包；无新的安装脚本，peer 依赖警告仍只有原有的 `@nestjs/swagger` 与 TypeScript 7。
+- 源码核对（`express-session@1.19.0` 的 `index.js`、`session/store.js`、`session/session.js`、`session/cookie.js`）：
+  - `get(sid, cb)`：回调第二个参数为空时，express-session 生成一个新会话（新 ID）；回调带错误且 `code` 不是 `ENOENT` 时直接交给 `next(err)`。
+  - `get` 返回的对象会经过 `Store.prototype.createSession`，它读取 `sess.cookie.expires` 并用 `new Cookie(sess.cookie)` 还原 Cookie，所以必须带 `cookie` 字段；已有会话的 Cookie 属性来自 Store 返回的值，而不是中间件配置，因此 Store 需要知道配置的 Cookie 属性。Cookie 不设 `maxAge` 时，`expires` 为 `null`（浏览器关闭即清除）。
+  - 什么时候调用 `set`/`touch`（`resave:false`、`saveUninitialized:false`）：新会话只有被修改过才 `set`；读出来的会话在本次请求里被修改（比较不含 cookie 的 JSON 摘要）就 `set`，没修改就 `touch`（Store 实现了 `touch` 时）。退出用 `destroy`，`regenerate` 先 `destroy` 旧 ID 再生成新会话。
+  - `Session.prototype.save` 调用 `store.set(id, this, fn || noop)`；`Session.prototype.destroy(fn)` 可能不传回调；类型包里 `set`/`destroy`/`touch` 的回调都是可选的。
+- 设计（据此确定）：新建 `apps/api/src/modules/auth/session-store.ts`，导出 `PostgresSessionStore extends session.Store`，构造参数为 `SessionsRepository`、Cookie 属性（`path`、`httpOnly`、`secure`、`sameSite`）和时钟（默认 `() => new Date()`）。
+  - `get`：`findActive(sid, now)`；不存在或过期回调 `null`；有效时回调 `{ cookie: { ...Cookie 属性, originalMaxAge: null }, userId, csrfToken, loadedFromStore: true }`。
+  - `set`：没有字符串类型的 `userId` 和 `csrfToken` 就回调错误、不写库（不保存匿名会话）。没有 `loadedFromStore` 标记的是本次请求新建的会话（例如登录后）→ `create`，期限用 `startSessionWindow`。带标记的是读出来的会话 → 先 `findActive` 取数据库里的期限，再用 `touchSessionWindow` 续期并 `update`；读不到（期间已退出或过期）就什么都不做，不重新创建；`userId` 与库里不一致就回调错误。
+  - 为什么要 `loadedFromStore` 标记：没有它，「读出来后被另一个请求退出删除的会话」和「刚登录的新会话」在 Store 看来都是「库里没有」，`set` 只能一律创建，退出的会话就会以同一个 ID 被重新建出来，旧 Cookie 又能用了（违反 M1-R05）。标记由 `get` 写入会话对象，只有从库里读出来的会话才有。
+  - `touch`：读出期限、续期并更新，数据不变；读不到就什么都不做。`destroy`：`delete`。
+  - 所有数据库错误原样交给回调，回调恰好调用一次；没有回调时不报错。
+- 本步不挂到 Express 上、不做登录接口，`AuthModule` 也不提供这个类（它需要 Cookie 配置，接入时在下一步创建）。
+- 验收：`apps/api/test/session-store.spec.ts` 与 `apps/api/test/integration/session-store.db.spec.ts` 通过；`test:db` 全部通过；`pnpm check` 退出码 0。
+
+M1-S20 测试准备记录（2026-10-15）：
+- 离线 `apps/api/test/session-store.spec.ts` 22 条，使用内存版假仓储和固定时钟：`get` 对未知/过期返回 `null`、有效时返回上述结构并把时钟时间传给 `findActive`；经 express-session 自带的 `load` 能还原成 `Session` 实例，`cookie` 是 `Cookie` 实例、属性来自配置、`expires` 为 `null`；`set` 新会话只存 `csrfToken`（多余字段不入库）、期限从当前时间开始；缺 `userId`、缺 `csrfToken`、`userId` 非字符串时回调错误且不写库；读出的会话续期时闲置截止从库里的期限计算；读出后被删除的会话不会重新创建；改变 `userId` 回调错误；`touch` 保留库里的数据、续期不越过绝对截止、未知或过期时不写库；`destroy` 删除，且不传回调也能执行；5 种调用在仓储失败时都把同一个错误交给回调、回调只调用一次。
+- 真实库 `apps/api/test/integration/session-store.db.spec.ts` 2 条：经真实 `SessionsRepository` 和 express-session 的 `load`/`save` 完成「新建 → 6 小时后读出并续期 → 原闲置截止过后仍可读 → 删除后读不到、库里无行」；读出会话后另一请求删除它，本请求修改并 `save`，库里仍然没有这一行。
+- 测试自身的核对：先在 `test/` 下放了一份临时参考实现，把两个测试文件复制一份指向它运行：离线 22 条、真实库 2 条通过；其中离线测试最初把 `cookie.expires` 断言为 `undefined`，与 express-session 实际行为（`null`）不符，已改正。再把参考实现改成「读不到就创建」，离线测试中「不会重新创建」等 3 条失败，说明测试能发现这个漏洞。临时文件均已删除。
+- 实现前运行：离线 22 条、真实库 2 条均因 `session-store.ts` 不存在而失败；其余 API 测试 111 条、真实库 65 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S20 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/modules/auth/session-store.ts`（`PostgresSessionStore`），并要求助手补充简要注释；助手加注释，并删掉 `write` 中一行重复的 `return`（第二个永远执行不到，删除不改变行为）。
+- `pnpm --filter @ledger/api exec vitest run test/session-store.spec.ts`：22 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：9 个文件、67 条通过，连续两次相同；运行后 `ledger_it` 无残留连接。
+- `pnpm check`：退出码 0；API 19 个文件、133 条，Web 1 个文件、2 条，build 完成。文件通过 Prettier。
+- 编译产物：直接导入 `dist/modules/auth/session-store.js`，实例属于 `express-session` 的 `Store`，`get` 未知 ID 回调 `null, null`，说明 ESM 构建下默认导入 express-session 正常。
+- M1-T05（SessionStore get/set/destroy/touch、SID 摘要、闲置/绝对期限）由 S18～S20 完成。
+- 没有验证到：还没有挂到 Express 上，没有经过 HTTP 请求。
+
+### M1-S21 详情（待用户确认）
+
+- 来源：技术方案 §5「本地 loopback HTTP 使用 `ledger.sid`、Secure:false；HttpOnly、SameSite:Lax、Path:/、无 Domain」「SESSION_SECRET 是服务端配置，缺失拒绝认证配置启动；不能写死或从 DATABASE_URL 派生」「saveUninitialized:false」，PRD M1-R08「数据库离线时 health 仍为 200」。这是 M1-T06（登录）之前的接线步骤。
+- 计划：让应用真正带上会话中间件，但还没有任何接口往会话里写东西。
+  - 配置：`validateEnvironment` 新增必填的 `SESSION_SECRET`（express-session 用它给 Cookie 里的会话 ID 签名，防止被篡改或伪造）。普通测试在 `setup-env.ts` 里固定一个虚构值；用户需要自己在 `.env` 里加一行随机值（助手不改 `.env`）。
+  - 挂载：在 `configureApp` 中安装 `session({ name: 'ledger.sid', secret, store: PostgresSessionStore, resave: false, saveUninitialized: false, cookie: { path: '/', httpOnly: true, secure: false, sameSite: 'lax' } })`，`AuthModule` 接入 `AppModule`。
+  - 只作用于需要会话的路径：带着 Cookie 的请求会让 express-session 先查数据库。如果对所有路径生效，数据库离线时 `/api/v1/health` 也会因为浏览器带着 Cookie 而失败，违反 M1-R08。建议只挂在 `/api/v1/auth` 等以后需要身份的路径上，health 和 ready 不经过它。
+- 待核对：`generate-openapi.ts` 也调用 `configureApp`，离线生成契约时需要格式合法的 `SESSION_SECRET`（`contracts.spec.ts` 和 `pnpm contracts` 的环境要相应提供）；Nest 中取得 `SessionsRepository` 实例的方式。
+- 测试（助手先写）：缺少或过短的 `SESSION_SECRET` 启动被拒绝；health/ready 带着会话 Cookie、且数据库不可达时仍按原样响应（不经过会话中间件）；需要会话的路径上，没有 Cookie 的请求不写库、不发 Set-Cookie（匿名会话不保存）；离线 contracts 仍可生成。
+- 验收：以上测试与 `pnpm check` 通过。
 
 ## 实际执行记录
 
