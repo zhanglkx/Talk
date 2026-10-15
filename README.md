@@ -9,7 +9,7 @@
 - `GET /api/v1/health` 存活检查（不查库），`GET /internal/ready` 就绪检查（`SELECT 1`，失败返回 503）
 - OpenAPI 产物 `docs/openapi.json`，以及由它生成的 Web 类型
 
-已有 users、sessions 两张表的实体、migration 和给 TypeORM CLI 用的连接入口。这两份 migration 已在专用测试库 `ledger_it` 上由 `test:db` 真实执行并验证；开发库还没有执行过，也还没有给开发库用的迁移脚本。认证、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段进度与验收见 [学习计划](docs/plan/README.md)。
+已有 users、sessions 两张表的实体、migration 和给 TypeORM CLI 用的连接入口，以及用户数据访问层、Argon2id 密码哈希和建立两个虚构演示账号的 `seed:demo`。migration 和 seed 已在专用测试库 `ledger_it` 上由 `test:db` 真实执行并验证；开发库还没有执行过，也还没有给开发库用的迁移脚本。登录接口、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段进度与验收见 [学习计划](docs/plan/README.md)。
 
 ## 技术栈
 
@@ -64,6 +64,7 @@ curl http://127.0.0.1:3000/internal/ready
 | `pnpm --filter @ledger/api test` | 只跑 API 单元与 HTTP 测试；其中契约测试会真的跑 `pnpm contracts`，重建 `apps/api/dist`（正在运行的 `pnpm dev` 会因此重启 API）并重写两份生成文件 |
 | `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db` | 真实 PostgreSQL 集成测试：先删除并重建 `ledger_it`，再构建 API、执行 migration 并检查表结构；只接受本机的 `ledger_it`，运行时不能有其他连接占用该库 |
 | `pnpm build` | 构建 API 与 Web |
+| `DATABASE_URL=<已迁移的库> SEED_DEMO_A_PASSWORD=<密码> SEED_DEMO_B_PASSWORD=<密码> pnpm --filter @ledger/api run seed:demo` | 构建 API 后建立虚构账号 `demo_a`、`demo_b`；已存在的账号不改动。密码 12～128 个字符，只在命令里临时提供，不写进 `.env` 或文件。不建表，目标库必须先执行过 migration |
 | `pnpm check` | 依次跑 contracts、typecheck、`pnpm test`（API + Web）、build；不含 `test:db`，需要另外运行 |
 
 `pnpm test` 不连接数据库；其中的 API 测试固定使用一个连不上的本机地址，不使用 `.env` 里的连接串。真实数据库测试只走 `test:db`，第一次运行前要先建好测试库：`createdb ledger_it`。进度与证据见 [M1 进度](docs/plan/M1/README.md)。

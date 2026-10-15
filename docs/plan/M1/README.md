@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S16 已验收；当前步骤 M1-S17，seed 脚本，测试已就绪）。
+- 状态：**进行中**（M1-S17 已验收，M1-R02 通过；当前步骤 M1-S18，会话期限规则，待确认）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -34,7 +34,7 @@
 | 编号 | 验收条件 | 当前状态 |
 |---|---|---|
 | M1-R01 | 空库显式执行 migration 后具备 users/sessions；再次执行不重复建表；应用启动不自动建表或迁移。 | 通过（2026-10-15，M1-S11）：`apps/api/test/integration/migrations-run.db.spec.ts`、`users-migration.db.spec.ts`、`sessions-migration.db.spec.ts`；启动不连库、不迁移见 `apps/api/test/database-startup.spec.ts`（M1-S05）。down 未在真实库演练。 |
-| M1-R02 | seed 建立两个虚构账号；只保存密码哈希，不把密码写入代码、文档或日志；再次执行不悄悄重置已有密码。 | 未验证 |
+| M1-R02 | seed 建立两个虚构账号；只保存密码哈希，不把密码写入代码、文档或日志；再次执行不悄悄重置已有密码。 | 通过（2026-10-15，M1-S17，限 `ledger_it`）：`apps/api/test/integration/seed-demo-users.db.spec.ts`、`apps/api/test/demo-users.spec.ts`、`apps/api/test/integration/users-repository-write.db.spec.ts`。开发库上的演示留到 M1-T10。 |
 | M1-R03 | 正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性。 | 未验证 |
 | M1-R04 | me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户。 | 未验证 |
 | M1-R05 | 退出销毁服务端会话并清同名/同路径 Cookie；重放旧 Cookie 不恢复登录。 | 未验证 |
@@ -66,7 +66,8 @@
 | M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | done |
 | M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | done |
 | M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | done |
-| M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | 测试已就绪，等待用户实现 |
+| M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | done |
+| M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -375,6 +376,29 @@ M1-S17 测试准备记录（2026-10-15）：
 - 离线 `apps/api/test/demo-users.spec.ts` 10 条：`readDemoAccounts` 返回 `demo_a`/`demo_b` 及原样密码（保留首尾空格），12 和 128 个字符可用，缺少、空串、11 个、129 个字符时报错且信息含变量名、不含密码；`seedDemoUsers` 按顺序调用 `createIfAbsent`，传入的哈希能用对应密码校验通过，并返回各账号结果；第一个失败时原样抛出且不再处理第二个。
 - 真实库 `apps/api/test/integration/seed-demo-users.db.spec.ts` 4 条，运行真实的 `pnpm run seed:demo`：首次运行两个账号 `created`、哈希可校验；换密码再运行两个都是 `exists`，行不变，旧密码仍能校验、新密码不能；缺少 `SEED_DEMO_B_PASSWORD` 时先确认 `127.0.0.1:1` 连接被拒绝，再用它作数据库地址运行，命令失败、输出含变量名且不含 `ECONNREFUSED`；把 `ledger_it` 重建为空库后运行，命令失败、输出含 `relation "users" does not exist`，且库里仍没有任何表。每条都检查输出不含密码、`$argon2id$` 和 `postgresql://`；命令 60 秒内未自行退出视为失败。
 - 实现前运行：离线 10 条因 `demo-users.ts` 不存在失败；真实库 4 条因 `dist/scripts/seed-demo-users.js` 不存在而失败；其余 API 测试 84 条、真实库 51 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S17 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/scripts/demo-users.ts`（`readDemoAccounts`、`seedDemoUsers`）和 `apps/api/src/scripts/seed-demo-users.ts`（命令入口：先检查密码，再用 `createApplicationContext` 组装模块，`finally` 中关闭，失败时只打印错误信息并设退出码 1）。
+- `pnpm --filter @ledger/api exec vitest run test/demo-users.spec.ts`：10 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：7 个文件、55 条通过，连续两次相同；其中 `seed-demo-users.db.spec.ts` 4 条全部通过。运行后 `ledger_it` 无残留连接。
+- 手动运行（`ledger_it`，先执行一次 migration 命令，输出「No migrations are pending」；虚构密码只在命令里提供）：第一次输出 `demo_a: created`、`demo_b: created`，第二次换密码输出两个 `exists`，退出码均为 0；缺少 `SEED_DEMO_B_PASSWORD` 时输出 `seed:demo failed: SEED_DEMO_B_PASSWORD must be set to a password of 12 to 128 characters`。库中两行的哈希均以 `$argon2id$v=19$m=19456,t=2,p=1$` 开头。
+- `pnpm check`：退出码 0；API 16 个文件、94 条，Web 1 个文件、2 条，build 完成。`src/scripts` 通过 Prettier。
+- 同步更新根 README 命令表、`docs/plan/README.md` 和 steering 中关于 seed 的说明。
+- 没有验证到：没有在开发库上运行（开发库尚未执行 migration，留到 M1-T10 演示步骤）。
+
+### M1-S18 详情（待用户确认）
+
+- 来源：M1 PRD §4「会话闲置 12 小时、绝对 7 天；到达任一截止点即失效」，技术方案 §5「touch 仅延长闲置期限，不越过 absolute_expires_at；读写均检查最早截止点」「以 SHA-256(Session ID) 为 DB 键」，§8 单元测试「绝对/闲置期限；注入时钟，不靠长时间 sleep」。这是 M1-T05（SessionStore）的第一小步：先把时间规则写成纯函数，Store 读写数据库时直接调用，规则只有一份。
+- 计划：新建 `apps/api/src/modules/auth/session-lifecycle.ts`，不连数据库、不读系统时间（「现在」由调用方传入），本步不引入 express-session、不写 Store。
+- 建议内容：
+  - 常量 `SESSION_IDLE_TIMEOUT_MS`（12 小时）和 `SESSION_ABSOLUTE_TIMEOUT_MS`（7 天）。
+  - `startSessionWindow(now)`：返回 `{ lastSeenAt: now, idleExpiresAt: now + 12h, absoluteExpiresAt: now + 7d }`。
+  - `touchSessionWindow(window, now)`：`lastSeenAt` 改为 `now`，`idleExpiresAt` 改为 `now + 12h` 与 `absoluteExpiresAt` 两者中较早的那个；`absoluteExpiresAt` 不变。这样永远满足 sessions 表的 CHECK。
+  - `isSessionActive(window, now)`：`now` 早于两个截止时间才算有效；恰好等于截止时间即失效。
+  - `hashSessionId(sessionId)`：返回 SHA-256 的 64 位小写 16 进制字符串，与 `session_key_hash CHAR(64)` 对应。
+  - 所有函数返回新对象，不修改传入的对象；时间都用 `Date`。
+- 动作：用户确认后，助手先写 `apps/api/test/session-lifecycle.spec.ts`（固定的虚构时间，覆盖创建、续期、续期被绝对期限截住、恰好到期、多次续期累计也不超过 7 天、不修改入参、摘要长度与格式、同一 ID 摘要相同且不含原文），确认失败后由用户实现，再运行测试和 `pnpm check`。
+- 验收：`session-lifecycle.spec.ts` 全部通过；`pnpm check` 退出码 0。
 - 未修改业务代码。
 
 ## 实际执行记录
