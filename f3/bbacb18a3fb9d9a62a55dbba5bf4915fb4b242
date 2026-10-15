@@ -1,0 +1,22 @@
+apps/api/test/integration/seed-demo-users.db.spec.ts
+  s_85c62c5c2bd069::t_b20bf8b6bd75ad 1-171
+apps/api/test/demo-users.spec.ts
+  s_85c62c5c2bd069::t_0cbb0430c7c983 1-108,110-133
+  s_85c62c5c2bd069::t_92d2c765542286 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "f3bbacb18a3fb9d9a62a55dbba5bf4915fb4b242",
+  "prompts": {},
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
