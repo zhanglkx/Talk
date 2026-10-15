@@ -1,0 +1,24 @@
+apps/api/test/integration/main-session.db.spec.ts
+  s_85c62c5c2bd069::t_01c0a7f1a1e526 68-70,146
+  s_85c62c5c2bd069::t_7d3feb45fb80df 1-67,71-145,147-248
+apps/api/test/session-config.spec.ts
+  s_85c62c5c2bd069::t_51c82e6cf7b897 1-80
+apps/api/test/session-mount.spec.ts
+  s_85c62c5c2bd069::t_3aaf60c3def83f 1-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "829c6be69a77a0e8a92abf3b5610f0b79c733cf7",
+  "prompts": {},
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
