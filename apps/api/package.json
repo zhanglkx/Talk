@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "test:db": "vitest run --config vitest.integration.config.ts",
     "openapi": "pnpm run build && node dist/generate-openapi.js"
   },
   "dependencies": {
