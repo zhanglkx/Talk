@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S15 已验收；当前步骤 M1-S16，`UsersRepository` 的写入方法）。
+- 状态：**进行中**（M1-S16 已验收；当前步骤 M1-S17，seed 脚本，待确认设计）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -65,7 +65,8 @@
 | M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | done |
 | M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | done |
 | M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | done |
-| M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | 待确认 |
+| M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | done |
+| M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -340,6 +341,32 @@ M1-S15 验收证据（2026-10-15）：
   4. 助手运行离线测试、`test:db`、`pnpm check`，记录证据。
 - 注意事项：本步不写 seed 脚本、不读取任何密码来源、不新增 npm 脚本；不提供修改密码的方法。真实库测试写入的虚构用户会随下次 `test:db` 重建库一起清掉。
 - 验收：离线测试与 `test:db` 通过且包含上述检查；`pnpm check` 退出码 0。
+
+M1-S16 测试准备记录（2026-10-15）：用户回复「开始 S16」，同意两道写入检查。
+- 离线 `apps/api/test/users.repository.spec.ts` 新增 10 条：`createIfAbsent` 连接失败时原样抛出；4 种未规范化的用户名（大写、首尾空白、过短、不允许的字符）和 4 种不合格的哈希（明文、空串、`$argon2i$`、缺开头的 `$`）都在调用 `ensureConnected` 之前被拒绝、不发 SQL；错误信息和堆栈不包含传入的明文。
+- 真实库 `apps/api/test/integration/users-repository-write.db.spec.ts` 4 条：首次创建返回 `'created'`，id 为 UUID v4，S14 的两个查询能读到；已存在时换一个哈希再调用返回 `'exists'`，库里的行（含原哈希）不变；同名并发 10 轮，每轮恰好一个 `'created'`、一行；SQL 文本不含用户名和哈希。
+- 并发测试的区分力：用临时脚本直接在 `ledger_it` 上对比，「先查再插」在单次并发中 30 轮有 15 轮出错或结果不对，`ON CONFLICT` 为 0/30；因此测试改为 10 轮，「先查再插」全部侥幸通过的概率约 0.1%。脚本写入的数据已删除，脚本文件已删除。
+- 实现前运行：离线 10 条和真实库 4 条均因 `createIfAbsent is not a function` 失败；其余 API 测试 74 条、真实库 47 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S16 验收证据（2026-10-15）：
+- 实现：用户在 `apps/api/src/modules/users/users.repository.ts` 中手写 `createIfAbsent`：先做两道检查（报错信息不含传入值），再 `ensureConnected()`，然后执行带参数的 `INSERT ... ON CONFLICT (username) DO NOTHING RETURNING id`，按返回行数判断 `'created'`/`'exists'`。
+- `pnpm --filter @ledger/api exec vitest run test/users.repository.spec.ts`：12 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：6 个文件、51 条通过，含新增 4 条（并发 10 轮均恰好一行）。
+- `pnpm check`：退出码 0；API 15 个文件、84 条，Web 1 个文件、2 条，build 完成。`pnpm typecheck` 通过，文件通过 Prettier（Prettier 不整理模板字符串内的 SQL 排版）。
+- 没有验证到：seed 尚未调用该方法；没有提供修改密码的方法（本阶段不需要）。
+
+### M1-S17 详情（待用户确认）
+
+- 来源：PRD M1-R02、技术方案 §2 `src/scripts/seed-demo-users.ts`「受控建立两名演示账号；禁止内嵌秘密、静默改密码、自动建表」、§4「seed 不使用固定演示密码」。
+- 计划：一个显式运行的命令，为两个虚构账号各执行一次「哈希密码 → `createIfAbsent`」，并逐个输出 `created` 或 `exists`。它复用已有的 `UsersRepository`、`hashPassword` 和共享连接，结束时关闭连接；不建表、不迁移，库里没有 users 表时报错退出。
+- 建议设计：
+  - 账号：`demo_a`、`demo_b`（虚构，写在代码里；用户名不是秘密）。
+  - 密码来源：运行命令时由环境变量 `SEED_DEMO_A_PASSWORD`、`SEED_DEMO_B_PASSWORD` 临时提供，不写进代码、`.env`、文档或日志。按 PRD 要求长度 12～128，原样使用；缺少或不合格时在连接数据库之前报错。对已存在的账号不读密码也不重新哈希。
+  - 运行方式：`apps/api` 新增脚本 `seed:demo`（先构建，再运行 `dist/scripts/seed-demo-users.js`），由 `NestFactory.createApplicationContext` 组装 `ConfigModule`、`DatabaseModule`、`UsersModule`，在 `finally` 中关闭。
+  - 输出：只打印用户名和结果；不打印密码、哈希或连接串。
+- 测试（助手先写）：离线覆盖缺少/过短/过长密码在连库前失败、错误信息不含密码；`ledger_it` 上覆盖首次运行创建两个账号且存的是可校验的 Argon2id 哈希、第二次换密码运行两个都是 `exists` 且哈希不变、未迁移的空库上报错退出且不建表、命令输出不含密码和哈希、运行结束后无残留连接。
+- 注意事项：本步只在 `ledger_it` 上验证；开发库还没执行过 migration，给开发库迁移和 seed 留到 M1-T10 的演示步骤。
+- 验收：离线测试和 `test:db` 通过；`pnpm check` 退出码 0。
 - 未修改业务代码。
 
 ## 实际执行记录
