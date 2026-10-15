@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S20 已验收；当前步骤 M1-S21，把 express-session 挂到应用上，待确认）。
+- 状态：**进行中**（M1-S20 已验收；当前步骤 M1-S21，把 express-session 挂到应用上，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -70,7 +70,7 @@
 | M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | done |
 | M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
-| M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | 待确认 |
+| M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -475,16 +475,24 @@ M1-S20 验收证据（2026-10-15）：
 - M1-T05（SessionStore get/set/destroy/touch、SID 摘要、闲置/绝对期限）由 S18～S20 完成。
 - 没有验证到：还没有挂到 Express 上，没有经过 HTTP 请求。
 
-### M1-S21 详情（待用户确认）
+### M1-S21 详情
 
-- 来源：技术方案 §5「本地 loopback HTTP 使用 `ledger.sid`、Secure:false；HttpOnly、SameSite:Lax、Path:/、无 Domain」「SESSION_SECRET 是服务端配置，缺失拒绝认证配置启动；不能写死或从 DATABASE_URL 派生」「saveUninitialized:false」，PRD M1-R08「数据库离线时 health 仍为 200」。这是 M1-T06（登录）之前的接线步骤。
+- 用户回复「开始 S21」。
+- 来源：技术方案 §5「本地 loopback HTTP 使用 `ledger.sid`、Secure:false；HttpOnly、SameSite:Lax、Path:/、无 Domain」「SESSION_SECRET 是服务端配置，缺失拒绝认证配置启动；不能写死或从 DATABASE_URL 派生」「saveUninitialized:false」，§1「contracts 新增会话模块后仍需能离线导出 OpenAPI……不允许放宽运行时必需配置」，PRD M1-R08「数据库离线时 health 仍为 200」。这是 M1-T06（登录）之前的接线步骤。
 - 计划：让应用真正带上会话中间件，但还没有任何接口往会话里写东西。
-  - 配置：`validateEnvironment` 新增必填的 `SESSION_SECRET`（express-session 用它给 Cookie 里的会话 ID 签名，防止被篡改或伪造）。普通测试在 `setup-env.ts` 里固定一个虚构值；用户需要自己在 `.env` 里加一行随机值（助手不改 `.env`）。
-  - 挂载：在 `configureApp` 中安装 `session({ name: 'ledger.sid', secret, store: PostgresSessionStore, resave: false, saveUninitialized: false, cookie: { path: '/', httpOnly: true, secure: false, sameSite: 'lax' } })`，`AuthModule` 接入 `AppModule`。
-  - 只作用于需要会话的路径：带着 Cookie 的请求会让 express-session 先查数据库。如果对所有路径生效，数据库离线时 `/api/v1/health` 也会因为浏览器带着 Cookie 而失败，违反 M1-R08。建议只挂在 `/api/v1/auth` 等以后需要身份的路径上，health 和 ready 不经过它。
-- 待核对：`generate-openapi.ts` 也调用 `configureApp`，离线生成契约时需要格式合法的 `SESSION_SECRET`（`contracts.spec.ts` 和 `pnpm contracts` 的环境要相应提供）；Nest 中取得 `SessionsRepository` 实例的方式。
-- 测试（助手先写）：缺少或过短的 `SESSION_SECRET` 启动被拒绝；health/ready 带着会话 Cookie、且数据库不可达时仍按原样响应（不经过会话中间件）；需要会话的路径上，没有 Cookie 的请求不写库、不发 Set-Cookie（匿名会话不保存）；离线 contracts 仍可生成。
-- 验收：以上测试与 `pnpm check` 通过。
+- 设计（核对后相对初稿的调整）：
+  - `SESSION_SECRET` 不放进 `validateEnvironment`：它同时被 TypeORM CLI 入口、seed 和 contracts 使用，这些命令不处理 HTTP 会话，不应因为缺少会话密钥而失败。改为在安装会话中间件时检查：新建 `apps/api/src/modules/auth/session-config.ts`，导出 Cookie 名称 `ledger.sid`、Cookie 属性（`path:'/'`、`httpOnly:true`、`secure:false`、`sameSite:'lax'`，不设过期时间）、挂载路径 `['/api/v1/auth']` 和 `readSessionSecret(value)`（缺少、非字符串、只有空白时报「SESSION_SECRET is required」，少于 32 个字符时报「must be at least 32 characters」，错误信息不带传入值）。
+  - `apps/api/src/configure-app.ts` 新增 `configureSession(app)`：从 `ConfigService` 读密钥并检查，用 `app.get(SessionsRepository)` 创建 `PostgresSessionStore`，再 `app.use(挂载路径, session({ name, secret, store, resave:false, saveUninitialized:false, cookie }))`。`main.ts` 在 `configureApp(app)` 之后调用它；`AppModule` 导入 `AuthModule`。
+  - `generate-openapi.ts` 不调用 `configureSession`：OpenAPI 只来自控制器，与中间件无关，所以 `pnpm contracts` 不需要会话密钥，`contracts.spec.ts` 不用改。运行时（`main.ts`）仍然必须提供密钥，没有放宽。
+  - 只挂在 `/api/v1/auth`：用临时测试（未改业务代码，已删除）验证过反例——会话中间件挂在所有路径上、数据库不可用时，带会话 Cookie 的 `GET /api/v1/health` 返回 500，不带 Cookie 才是 200；也就是说浏览器只要登录过，数据库一断 health 就失败，违反 M1-R08。以后需要身份的业务路径（M2 起）再加入挂载列表。
+- 用户需要做的环境改动：在仓库根 `.env` 里加一行 `SESSION_SECRET=<随机值>`（例如 `openssl rand -base64 32` 的输出，44 个字符），否则 `pnpm dev` 启动时会报错。助手不改 `.env`；普通测试在 `test/setup-env.ts` 中固定了一个虚构值（用户已提交为 `1c7cf6e`）。
+- 测试（助手先写，用户已提交为 `829c6be`）：
+  - `apps/api/test/session-config.spec.ts` 10 条：Cookie 名称与属性完全一致、挂载路径只有 `/api/v1/auth`；恰好 32 个字符和 `openssl rand -base64 32` 形式的值原样返回；缺少、`null`、非字符串、空串、只有空白时报 required；31 个字符时报长度不足且不带出该值。
+  - `apps/api/test/session-mount.spec.ts` 8 条，用真实 `AppModule` + `configureApp` + `configureSession`，`ensureConnected` 一律失败：安装过程不连库；带有效签名 Cookie 的 health 仍为 200、无 Set-Cookie、没有查会话；带 Cookie 的 ready 仍为 503 且只有就绪检查连库一次；`/api/v1/auth` 下匿名请求 404、无 Set-Cookie、不查库；用别的密钥签名的 Cookie 被当作没有会话；有效签名的 Cookie 会去查会话，失败时返回 5xx 且响应不含内部错误信息（映射成 503 留到错误映射步骤）；缺少或过短的密钥时 `configureSession` 报错且不安装中间件。
+  - `apps/api/test/integration/main-session.db.spec.ts` 5 条，启动真实的 `dist/main.js`：`SESSION_SECRET` 为空时进程以非 0 退出、输出含「SESSION_SECRET is required」且不含连接串；有密钥时启动，带 Cookie 请求 health 为 200、库里的会话行不变；在 sessions 表写入一行后，带签名 Cookie 请求 `/api/v1/auth/fixture-probe` 得到 404、无 Set-Cookie，且该行 `last_seen_at`、`idle_expires_at` 被续期、`absolute_expires_at` 不变；匿名请求和伪造签名都不写库；输出不含密钥和连接串，SIGTERM 后 `ledger_it` 上没有该进程留下的连接。
+- 测试自身的核对：在 `/tmp` 下建了一个临时 git worktree（共用依赖，不碰工作区），放入参考实现后运行：`session-config` 10 条、`session-mount` 8 条、原有 health/readiness/startup 4 条通过，`main-session` 5 条与 `session-store` 2 条通过且无残留进程和连接。再把参考实现改成挂在所有路径上，`session-mount` 中 health 与 ready 两条失败。worktree 已删除。
+- 实现前运行（工作区）：`session-config` 10 条因 `session-config.ts` 不存在、`session-mount` 8 条因 `configureSession` 未导出而失败，其余 133 条通过；`test:db` 中 `main-session` 有 2 条失败（无密钥时进程照常启动、20 秒后被测试终止；会话没有被续期），另外 3 条在当前代码下本来就成立（作为回归保护），其余 67 条通过；无残留进程和连接；`pnpm typecheck` 通过。未修改业务代码。
+- 验收：上述三个测试文件与完整 `test:db` 通过；`pnpm check` 退出码 0；`pnpm contracts` 无需 `SESSION_SECRET` 且生成契约无差异。
 
 ## 实际执行记录
 
