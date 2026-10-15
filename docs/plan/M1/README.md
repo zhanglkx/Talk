@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S18 已验收；当前步骤 M1-S19，`SessionsRepository`，待确认）。
+- 状态：**进行中**（M1-S19 已验收；当前步骤 M1-S20，express-session 的 Store 适配，待确认）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -68,7 +68,8 @@
 | M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | done |
 | M1-S17 | seed 脚本：建立两个虚构演示账号，密码从运行命令临时提供；重复执行不改已有账号。 | done |
 | M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | done |
-| M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | 待确认 |
+| M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
+| M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -412,8 +413,9 @@ M1-S18 验收证据（2026-10-15）：
 - `pnpm check`：退出码 0；API 17 个文件、107 条，Web 1 个文件、2 条，build 完成。文件通过 Prettier。
 - 没有验证到：还没有被 Store 或登录调用。
 
-### M1-S19 详情（待用户确认）
+### M1-S19 详情
 
+- 用户回复「开始 S19」，确认以下设计。
 - 来源：技术方案 §5「Store 的 get/set/destroy/touch 全部以 SHA-256(Session ID) 为 DB 键；明文 SID 不写 DB/日志」「读写均检查最早截止点」，§8 真实 DB 矩阵「Session FK、SID hash、touch 不延长绝对期限、destroy」。M1-T05 估 2 小时、允许拆成两张卡：本步只做数据库这一层，下一步再接 express-session。
 - 为什么先拆出这一层：express-session 是新依赖（2026-10-15 查询 npm 最新为 `1.19.0`，Nest 当前用 Express `5.2.1`），它的 Store 接口还要单独核对。先把「怎么按摘要读写 sessions 表」做好并在 `ledger_it` 上验证，接 express-session 时只需要做一层薄薄的转换。
 - 建议内容：`apps/api/src/modules/auth/sessions.repository.ts` 的 `SessionsRepository`，每个方法先 `ensureConnected()`，接收明文会话 ID 并在内部用 `hashSessionId` 转成摘要，SQL 一律带参数：
@@ -424,6 +426,27 @@ M1-S18 验收证据（2026-10-15）：
   - 一个 `AuthModule`（导入 `DatabaseModule`，提供并导出 `SessionsRepository`）；本步不接入 `AppModule`。
 - 测试（助手先写）：离线覆盖连接失败原样抛出、不发 SQL；`ledger_it` 上覆盖库里存的是摘要而不是明文 ID、能按 ID 读回、过期（用传入的时间判断）返回 `null`、更新后读到新内容且 `user_id` 不变、续期写入后 CHECK 约束仍满足、删除后读不到、用户不存在时创建失败（外键）、SQL 中不出现明文 ID。
 - 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0。
+
+M1-S19 测试准备记录（2026-10-15）：
+- 准备中的核对（临时脚本，已删除，写入的数据已清除）：用编译后的 `Session` 实体在 `ledger_it` 上试了 TypeORM 的 `insert`/`findOne`/`update`/`delete`：读回的 `data` 是普通对象、三个时间是 `Date`；`update`、`delete` 的 `affected` 在命中时为 1、未命中时为 0；外键冲突和主键重复抛 `QueryFailedError`，`code` 分别为 `23503`、`23505`。类型检查发现：实体的 `data` 声明为 `Record<string, unknown>` 时，`update` 的参数类型不接受它（TS2322）；改成具体类型 `{ csrfToken: string }` 后通过。因此本步把实体的 `data` 改为导出类型 `SessionData = { csrfToken: string }`，这也符合技术方案「会话最少持有 userId、csrfToken」。
+- 离线 `apps/api/test/sessions.repository.spec.ts` 4 条：`create`、`findActive`、`update`、`delete` 在连接失败时都原样抛出，不调用 `initialize`、不发 SQL。
+- 真实库 `apps/api/test/integration/sessions-repository.db.spec.ts` 10 条：库里只有摘要（按明文 ID 在主键和 data 中都查不到）；有效会话读回为与写入相同的普通记录；闲置截止前 1ms 可读、恰好到达和超过截止返回 `null`、未知 ID 返回 `null`；续期更新返回 `true`，原闲置截止过后仍可读到新内容；更新内容里混入 `userId` 也不会改变归属；更新未知 ID 返回 `false` 且不建行；删除只影响目标会话、重复删除不报错；用户不存在时创建报 `23503`；同一 ID 再次创建报 `23505` 且原行不变；四个方法发给数据库的 SQL 和参数中都没有明文 ID、只有摘要。
+- 实现前运行：离线 4 条与真实库 10 条均因 `auth.module.ts` 不存在而失败（真实库的 10 条在准备阶段失败后跳过）；其余 API 测试 107 条、真实库 55 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S19 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/modules/auth/sessions.repository.ts`、`auth.module.ts`，并把 `session.entity.ts` 的 `data` 改为 `SessionData`。按用户要求，助手补充并修正注释：实体顶部和三个时间列的说明从「以后的 SessionStore」改为实际负责的文件，`SessionData` 加说明；`auth.module.ts` 中从 `UsersModule` 复制来的注释（写的是 UsersRepository）改为 AuthModule 的实际内容，并去掉导入间的空行；`sessions.repository.ts` 为各方法加注释，并给 `create` 补上返回类型 `Promise<void>`。没有改动代码逻辑。
+- `pnpm --filter @ledger/api exec vitest run test/sessions.repository.spec.ts test/session.entity.spec.ts`：7 条通过（含 S11 的实体元数据测试，确认改类型后映射不变）。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：8 个文件、65 条通过，连续两次相同；运行后 `ledger_it` 无残留连接。
+- `pnpm check`：退出码 0；API 18 个文件、111 条，Web 1 个文件、2 条，build 完成。`modules/auth` 通过 Prettier；生成契约无差异。
+- 没有验证到：过期会话不会自动删除（清理任务不在 M1 范围内，需要时另行规划）；`AuthModule` 尚未接入 `AppModule`。
+
+### M1-S20 详情（待用户确认）
+
+- 来源：技术方案 §5「采用维护中的 express-session；持久化 Store 适配层复用项目 DataSource……不符合要求则以清晰、可测试的薄适配实现 Store 接口」「set 写入已认证会话；saveUninitialized:false 不保存匿名会话；touch 仅延长闲置期限」。这是 M1-T05 的后一半。
+- 计划：新增依赖 `express-session`（2026-10-15 查询 npm 最新为 `1.19.0`，精确锁定）及其类型包；新建 `apps/api/src/modules/auth/session-store.ts`，实现 express-session 要求的 Store 接口，内部只调用 `SessionsRepository` 和 S18 的期限函数，时钟由构造参数传入。本步不挂到 Express 上、不做登录接口。
+- 开工前要先核对（在锁定版本的源码上确认，不凭记忆）：express-session 在什么情况下调用 `set` 和 `touch`；`get` 返回的对象必须带哪些字段（例如 `cookie`），这些字段从数据库里的哪些值还原；回调式接口如何把数据库错误传回去。核对结果写进本节后再写测试。
+- 初步思路：`get` 用 `findActive`，没有就返回空；`set` 只接受带 `userId` 的会话，已有会话只更新内容并续期、不改绝对期限，没有会话才创建；`destroy` 用 `delete`；`touch` 读出当前期限后用 `touchSessionWindow` 续期。
+- 验收：离线与 `ledger_it` 上的测试通过（具体条目在核对后补充）；`pnpm check` 退出码 0。
 - 未修改业务代码。
 
 ## 实际执行记录
