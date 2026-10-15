@@ -17,6 +17,7 @@
   },
   "files.exclude": {
     "**/.git": true,
+    "apps/api/test": true,
     "**/.DS_Store": true,
     ".vscode": false,
     ".env": true,
