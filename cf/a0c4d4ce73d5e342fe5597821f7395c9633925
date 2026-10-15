@@ -1,0 +1,38 @@
+apps/api/tsconfig.json
+  s_85c62c5c2bd069::t_f552a12e65245d 19
+apps/api/vitest.integration.config.ts
+  s_85c62c5c2bd069::t_1464d505376f07 1-20
+apps/api/test/integration/support/test-database.ts
+  s_85c62c5c2bd069::t_05a5532ee9e27b 1-97
+  s_85c62c5c2bd069::t_6922360ce3b5b1 98-133
+apps/api/package.json
+  s_85c62c5c2bd069::t_8bea3f32d195ff 12
+apps/api/vitest.config.ts
+  s_85c62c5c2bd069::t_fbdd40faf59f09 1,13-14
+apps/api/test/integration/users-migration.db.spec.ts
+  s_85c62c5c2bd069::t_6684a622a7c232 2,5-7,23-24,37-38,45
+  s_85c62c5c2bd069::t_10543afec09843 1,3-4,8-22,25-36,39-44,46-174
+apps/api/test/integration/test-database-guard.spec.ts
+  s_85c62c5c2bd069::t_f9f0ce7f27621e 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "cfa0c4d4ce73d5e342fe5597821f7395c9633925",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
