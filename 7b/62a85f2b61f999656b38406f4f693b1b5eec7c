@@ -1,0 +1,28 @@
+apps/api/src/database/migrations/1791936000000-create-sessions.ts
+  h_67f487dacd1d7d 61-69,71-76,78
+  s_85c62c5c2bd069::t_f42b58451dee3c 1,25,60,70,77
+apps/api/src/database/database-options.ts
+  s_85c62c5c2bd069::t_abe093a8dfbb8f 22,24
+  h_67f487dacd1d7d 5-6,23,25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "7b62a85f2b61f999656b38406f4f693b1b5eec7c",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
