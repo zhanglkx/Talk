@@ -1,0 +1,14 @@
+apps/api/src/modules/auth/password-hasher.ts
+  h_67f487dacd1d7d 11,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "dcb7597267af3321abcf8487b2a1125861e831fc",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
