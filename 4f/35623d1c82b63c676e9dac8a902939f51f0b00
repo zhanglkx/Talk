@@ -1,0 +1,36 @@
+apps/api/src/modules/auth/password-hasher.ts
+  h_67f487dacd1d7d 1-20
+pnpm-lock.yaml
+  s_e54dc915e658bd::t_e64819fd1ea0d9 200-202,799-884,3537-3590
+apps/api/package.json
+  s_85c62c5c2bd069::t_a3a42fa3f03391 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "4f35623d1c82b63c676e9dac8a902939f51f0b00",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  },
+  "sessions": {
+    "s_85c62c5c2bd069": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "bf838bbe-459e-4195-ad21-7dd904267f8a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    },
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
