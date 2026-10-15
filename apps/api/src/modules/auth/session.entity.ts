@@ -1,6 +1,9 @@
 // 会话实体：描述 TypeScript 属性与 sessions 表的映射，供应用和 CLI 共用。
-// 本文件不建表、不读写会话，也不生成会话 ID；建表由 migration 负责，读写留给以后的 SessionStore。
+// 本文件不建表、不读写会话，也不生成会话 ID；建表由 migration 负责，读写由 SessionsRepository 负责。
 import { Check, Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm'
+
+// 会话里保存的状态，只有 CSRF token；写成具体类型，密码、账本等数据就放不进来。
+export type SessionData = { csrfToken: string }
 
 // 闲置期限不能晚于绝对期限：续期只能把闲置期限往后推，推到绝对期限为止。
 // 名称和表达式与 migration 保持一致；真正拦截错误数据的是 migration 在数据库里建的约束。
@@ -17,15 +20,15 @@ export class Session {
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string
 
-  // 会话里的其他状态，例如 CSRF token；不存密码、密码哈希或账本数据。
+  // 会话状态，类型见 SessionData。
   @Column({ type: 'jsonb' })
-  data!: Record<string, unknown>
+  data!: SessionData
 
   // 会话创建时间，插入时由数据库默认值 now() 填写。
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 
-  // 下面三个时间由以后的 SessionStore 按规则算好后显式写入，所以用普通 @Column，
+  // 下面三个时间按 session-lifecycle.ts 的规则算好后显式写入，所以用普通 @Column，
   // 不用 @CreateDateColumn/@UpdateDateColumn，避免 TypeORM 自动改写它们。
 
   // 最近一次使用会话的时间。
