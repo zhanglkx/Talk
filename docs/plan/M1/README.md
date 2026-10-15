@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S14 已验收；当前步骤 M1-S15，密码哈希与校验，测试已就绪）。
+- 状态：**进行中**（M1-S15 已验收；当前步骤 M1-S16，`UsersRepository` 的写入方法）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -64,7 +64,8 @@
 | M1-S12 | 把 API 测试纳入根目录 `pnpm test`，从而纳入 `pnpm check`；`test:db` 仍单独运行。 | done |
 | M1-S13 | 用户名规范化规则：一个纯函数，供以后的 seed 和登录共用。 | done |
 | M1-S14 | `UsersRepository` 的两个只读查询：按用户名取登录凭据、按 ID 取公开身份；第一次调用时自己建立连接，不依赖 ready。 | done |
-| M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | 测试已就绪，等待用户实现 |
+| M1-S15 | 密码哈希与校验（Argon2id）：供以后的 seed 和登录共用。 | done |
+| M1-S16 | `UsersRepository` 的写入方法：用户名不存在时创建，已存在时不改动（为 seed「重复执行不重置密码」打基础）。 | 待确认 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -315,6 +316,30 @@ M1-S15 测试准备记录（2026-10-15）：
 - 库行为核对（临时脚本，已删除）：`hash` 默认即 Argon2id，输出 PHC 字符串，长度 97；`verify` 遇到格式损坏的哈希会抛出 `InvalidArg: Decoding failed`，所以 `verifyPassword` 要自己接住并返回 `false`。本机（Apple M4）参数 `m=19456,t=2,p=1` 下，10 次哈希耗时中位数 8.5ms（最小 7.2、最大 10.8），校验中位数 8.9ms。
 - 新增 `apps/api/test/password-hasher.spec.ts`，14 条：PHC 格式与参数；同一密码两次哈希不同且都能校验；哈希不含明文；错误密码、首尾多空格、大小写不同、空串均为 `false`；中文与 emoji 密码可用；旧参数生成的哈希仍能校验；三种损坏的哈希返回 `false` 而不是抛错；哈希和校验期间不阻塞事件循环。最后一条事先用临时脚本核对过区分力：真正异步的实现 50/50 次通过，用同步 `hashSync` 包一层 `async` 的实现 0/50 次通过。
 - 实现前运行：14 条均因 `password-hasher.ts` 不存在而失败；原有 60 条通过；`pnpm typecheck` 通过；测试文件通过 Prettier。未修改业务代码。
+
+M1-S15 验收证据（2026-10-15）：
+- 实现：用户手写 `apps/api/src/modules/auth/password-hasher.ts`，并自行提交了初版（`4f35623`，含依赖）。评审发现初版把 `parallelism` 拼成了 `paralleist`：库忽略未知字段并改用默认值 1，结果碰巧仍是 `p=1`，所以 14 条测试和 tsc 都没有发现。用户改正拼写，并按建议加上 `satisfies Options`、`hashPassword` 的返回类型和注释。助手用临时文件确认：保留错误拼写并加上 `satisfies Options` 时，tsc 报 `TS2561 ... Did you mean to write 'parallelism'?`；临时文件已删除。
+- `pnpm --filter @ledger/api exec vitest run test/password-hasher.spec.ts`：14 条通过。
+- `pnpm check`：退出码 0；API 15 个文件、74 条，Web 1 个文件、2 条，build 完成。文件通过 Prettier。
+- 编译产物 `dist/modules/auth/password-hasher.js` 中 `Algorithm.Argon2id` 被内联为 `2`；直接导入该产物哈希一次虚构密码，得到 `$argon2id$v=19$m=19456,t=2,p=1` 前缀，且校验为 `true`。
+- 本机耗时（Apple M4，见上方准备记录）：哈希中位数 8.5ms，校验中位数 8.9ms；参数暂定 OWASP 最低档，调高后旧哈希仍可校验。
+- 没有验证到：还没有被 seed 或登录调用；「用户名不存在时也执行一次等价的哈希校验，减少时间差」（技术方案 §6）留到登录步骤。
+
+### M1-S16 详情
+
+- 来源：PRD M1-R02「seed 建立两个虚构账号；只保存密码哈希；再次执行不悄悄重置已有密码」，技术方案 §4「现有账号再次 seed 不重置密码」。seed 本身（命令、账号来源）放到下一步；本步只做它依赖的写入方法，把「已存在就不动」落实在数据库层。
+- 计划：在 `UsersRepository` 增加 `createIfAbsent({ username, passwordHash })`，返回 `'created'` 或 `'exists'`。
+  - 用一条带参数的 SQL：`INSERT INTO users (id, username, password_hash) VALUES ($1, $2, $3) ON CONFLICT (username) DO NOTHING RETURNING id`。用户名已存在时数据库什么都不做、不返回行，据此判断 `'exists'`。不要先查询再插入：两次 seed 同时运行时，两边都可能查到「不存在」，然后一边插入成功、另一边撞上唯一约束报错；`ON CONFLICT` 把判断和写入合成一步。
+  - `id` 在 Repository 内用 `crypto.randomUUID()` 生成（users 表不自动生成 id，见 S09）。
+  - 写入前做两道检查，不符合就抛错、不写库（建议，待用户确认）：用户名必须已经是规范化形式（`normalizeUsername(username) === username`），否则登录时永远查不到；密码哈希必须以 `$argon2id$` 开头，防止把明文密码误传进来存进库里。
+  - 先 `ensureConnected()`，与 S14 的读取方法一致。
+- 动作：
+  1. 用户确认上述设计（尤其两道检查）。
+  2. 助手先写测试：离线测试覆盖两道检查在连库前就拒绝，以及连接失败原样抛出；`ledger_it` 上覆盖首次创建、再次调用（换一个哈希）返回 `'exists'` 且库里仍是原来的哈希、两个并发调用恰好一个 `'created'` 且只有一行、创建后能用 S14 的两个查询读到、SQL 以参数传值。运行并确认因方法不存在而失败。
+  3. 用户在 `users.repository.ts` 中实现。
+  4. 助手运行离线测试、`test:db`、`pnpm check`，记录证据。
+- 注意事项：本步不写 seed 脚本、不读取任何密码来源、不新增 npm 脚本；不提供修改密码的方法。真实库测试写入的虚构用户会随下次 `test:db` 重建库一起清掉。
+- 验收：离线测试与 `test:db` 通过且包含上述检查；`pnpm check` 退出码 0。
 - 未修改业务代码。
 
 ## 实际执行记录
