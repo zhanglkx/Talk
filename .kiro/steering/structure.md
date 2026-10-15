@@ -1,6 +1,6 @@
 # 目录与代码约定
 
-## 现有结构（2026-10-13 核对）
+## 现有结构（2026-10-14 核对）
 
 - `apps/api/src/`：`main.ts`（监听 `127.0.0.1:PORT`，默认 3000）、`app.module.ts`、`configure-app.ts`（全局前缀）、`generate-openapi.ts`（导出契约）、`config/`（环境校验）、`database/`（共享连接配置、连接生命周期、就绪检查、CLI DataSource 工厂与入口、`migrations/`）、`modules/users/`（User 实体）、`health/`、`internal/`。
 - `apps/web/src/`：`App.tsx`、`main.tsx`；`src/generated/` 是生成物。
@@ -16,7 +16,8 @@
 
 ## 代码约定
 
-- API 是 ESM + `NodeNext`：相对导入必须写 `.js` 后缀，测试里也写成 `../src/xxx.js`。Web 用 `Bundler` 解析，导入不写后缀。
+- 导入路径：两端 `src/` 内用 `@/` 别名指向本应用的 `src/`。别名配置在 `tsconfig.json` 的 `paths` 和 `vitest.config.ts`／`vite.config.ts` 的 `resolve.alias`，两处要一致；API 构建时由 `tsc-alias` 把别名改回相对路径。测试沿用相对路径 `../src/xxx`。
+- API 是 ESM + `NodeNext`：本地导入必须写 `.js` 后缀，别名也一样（如 `@/database/data-source.js`），测试里写成 `../src/xxx.js`。Web 用 `Bundler` 解析，导入不写后缀。
 - 两端 TypeScript 都是 `strict`。用到 Nest 的测试先 `import 'reflect-metadata'`。
 - 格式按 `.prettierrc.json`：无分号、单引号、行宽 100。Markdown 不做自动格式化。
 - 现有代码的注释用中文白话说明「为什么」。

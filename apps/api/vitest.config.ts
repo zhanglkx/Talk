@@ -10,6 +10,5 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./test/setup-env.ts'],
     include: ['test/**/*.spec.ts'],
-    exclude: ['test/database.smoke.spec.ts'],
   },
 })

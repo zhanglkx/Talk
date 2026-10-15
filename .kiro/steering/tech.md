@@ -17,7 +17,7 @@
 - API 的 `dev` 用 SWC 且带 `--no-type-check`，类型错误只在 `pnpm typecheck` 或 `build` 时暴露。
 - `pnpm contracts`：构建 API → 运行 `dist/generate-openapi.js` 写 `docs/openapi.json` → 生成 `apps/web/src/generated/api-types.ts`。不需要数据库在线，但需要格式合法的 `DATABASE_URL`。
 - `apps/api/test/contracts.spec.ts` 会执行真实的 `pnpm contracts`，重写上面两份生成文件；跑完用 `git status` 确认没有意外差异。
-- API 测试在未设置 `DATABASE_URL` 时用 `apps/api/test/setup-env.ts` 的默认值（`localhost:5432/ledger_test`），本机 PostgreSQL 在线时可能真的连上。不该连库的测试要拦截 `DataSource.prototype.initialize` 和 `ConnectionLifecycleService.prototype.ensureConnected`。
+- 普通 API 测试由 `apps/api/test/setup-env.ts` 把 `DATABASE_URL` 固定为 `127.0.0.1:1/ledger_unit_offline`（该端口连接被拒绝，`ECONNREFUSED`）。它会覆盖终端导出的值；`@nestjs/config` 以进程变量优先，`.env` 里的连接串也不生效。漏拦截时只会连接失败，不会连上真实库；但不该连库的测试仍要拦截 `DataSource.prototype.initialize` 和 `ConnectionLifecycleService.prototype.ensureConnected`，不靠连接失败兜底。真实数据库测试不能加载这个 setup 文件。
 
 ## 运行时约定
 
