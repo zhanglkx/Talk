@@ -1,0 +1,18 @@
+apps/api/src/configure-app.ts
+  h_67f487dacd1d7d 2-11,18-38
+apps/api/src/main.ts
+  h_67f487dacd1d7d 4,8
+apps/api/src/app.module.ts
+  h_67f487dacd1d7d 7,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "1509814707862ec2a89b122ad377c6559ab38298",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
