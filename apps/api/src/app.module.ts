@@ -4,6 +4,7 @@ import { validateEnvironment } from '@/config/validate-environment.js'
 import { DatabaseModule } from '@/database/database.module.js'
 import { HealthModule } from '@/health/health.module.js'
 import { InternalModule } from '@/internal/internal.module.js'
+import { AuthModule } from '@/modules/auth/auth.module.js'
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InternalModule } from '@/internal/internal.module.js'
     DatabaseModule,
     HealthModule,
     InternalModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
