@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S21 已验收；当前步骤 M1-S22，登录凭据校验，待用户确认设计）。
+- 状态：**进行中**（M1-S21 已验收；当前步骤 M1-S22，登录凭据校验，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -71,7 +71,7 @@
 | M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
-| M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | 待用户确认设计 |
+| M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -502,9 +502,11 @@ M1-S21 验收证据（2026-10-19）：
 - `pnpm check`：退出码 0；API 21 个文件、151 条，Web 1 个文件、2 条，build 完成。
 - `env -u SESSION_SECRET pnpm contracts`：退出码 0，输出中没有 `SESSION_SECRET`；两份生成契约无 Git 差异。
 - 改动的 4 个 TypeScript 文件通过 Prettier。
-- 没有验证到：本机 `.env` 还没有 `SESSION_SECRET`，`pnpm dev` 没有实际启动过；数据库不可用时会话查询返回的是 5xx，映射成 503 留到 M1-T08；还没有接口往会话里写东西，登录时下发的 `Set-Cookie` 留到登录接口那一步。
-- 用户暂未采纳的建议（不影响验收）：`MIN_SECRET_LENGTH` 仍为导出；`configure-app.ts` 用相对路径导入，没有用 `@/` 别名；`.env.example` 的占位值只有 29 个字符，照抄会报「至少 32 个字符」。
-- 环境问题：仓库根和 `apps/api` 下 `node_modules/.bin` 的 11 个命令脚本仍指向 S21 测试准备时用过、现已删除的临时目录 `/tmp/ledger-s21-scratch`（修改时间 2026-10-15 21:02）。其中 `prettier` 无法运行，其余 10 个只是 `NODE_PATH` 指向不存在的目录，实际仍可用（本步的 vitest、tsc、nest 均正常）。本步改用 `node node_modules/prettier/bin/prettier.cjs` 检查格式；修复方法待用户确认。
+- 本机 `.env` 补上 `SESSION_SECRET` 后的启动核对（2026-10-19 20:5x）：只核对键名、长度和格式，不读出值。`.env` 中该值为 44 个字符、Base64 形式，没有首尾空白，能通过 `readSessionSecret`。在 `apps/api` 下用临时端口启动 `dist/main.js`，只读取 `.env`，终端没有导出这两个变量：`GET /api/v1/health` 返回 200 `{"status":"ok"}`；匿名请求 `/api/v1/auth/fixture-probe` 返回 404，没有 `Set-Cookie`；收到 SIGTERM 后进程退出；输出中不含密钥和连接串。没有请求 ready，避免连接开发库。用户曾把密钥误填进 `.env.example`，后来移到 `.env`；逐个检查 `.env.example` 的全部历史提交，`SESSION_SECRET` 都是占位值，密钥没有进入 Git。
+- 没有验证到：`pnpm dev`（SWC 监听模式）本身没有启动过，上面启动的是构建产物；数据库不可用时会话查询返回的是 5xx，映射成 503 留到 M1-T08；还没有接口往会话里写东西，登录时下发的 `Set-Cookie` 留到登录接口那一步。
+- 用户暂未采纳的建议（不影响验收）：`MIN_SECRET_LENGTH` 仍为导出；`configure-app.ts` 用相对路径导入，没有用 `@/` 别名。
+- `.env.example`（用户同意后由助手修改）：原占位值 `<openssl rand -base64 32 的输出>` 只有 29 个字符，照抄会报「至少 32 个字符」，误导人以为生成的密钥太短。改为 `SESSION_SECRET=` 留空，上方加一行英文注释说明长度与生成命令，文件末尾补换行；漏配时报 `SESSION_SECRET is required`。没有代码读取 `.env.example`。根 README 的说明同步修改。
+- 环境问题（已修复）：仓库根和 `apps/api` 下 `node_modules/.bin` 的 11 个命令脚本仍指向 S21 测试准备时用过、现已删除的临时目录 `/tmp/ledger-s21-scratch`（修改时间 2026-10-15 21:02）。其中 `prettier` 无法运行，其余 10 个只是 `NODE_PATH` 指向不存在的目录，实际仍可用（本步的 vitest、tsc、nest 均正常）。验收时改用 `node node_modules/prettier/bin/prettier.cjs` 检查格式。用户同意后，确认没有 dev 进程，执行 `rm -rf node_modules apps/api/node_modules apps/web/node_modules && pnpm install --frozen-lockfile`：520 个包全部从本地 store 复用，没有下载；`pnpm-lock.yaml` 的 SHA-256 前后一致；`.bin` 中不再有指向临时目录的脚本，`pnpm exec prettier --version` 输出 3.9.10。
 
 ### M1-S22 详情
 
@@ -524,6 +526,33 @@ M1-S21 验收证据（2026-10-19）：
   - 另外测量「用户存在但密码错误」和「用户不存在」两种调用的耗时中位数，作为证据记录，不写成断言（耗时断言在不同机器上不稳定）。
 - 注意事项：不写 Controller、Schema、regenerate、Cookie，不做限流和 Origin 检查（M1-T08）。
 - 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0。
+
+M1-S22 测试准备记录（2026-10-19）：
+- 用户回复「开始 S22」，同意上面三点设计。
+- 待实现（用户手写）：
+  - `apps/api/src/modules/auth/auth.service.ts`：命名导出 `@Injectable()` 的 `AuthService`，构造参数注入 `UsersRepository`；`verifyCredentials(username: string, password: string): Promise<PublicUser | null>`。假哈希的 Promise 存在实例的私有字段里，不放在模块顶层变量：这样每个 Nest 容器各有一份，测试之间互不影响。
+  - `auth.module.ts`：`imports` 改为 `[DatabaseModule, UsersModule]`，`providers` 加 `AuthService`。本步不必导出 `AuthService`，登录 Controller 写在同一个模块里。
+- 离线 `apps/api/test/auth.service.spec.ts` 16 条。`password-hasher.js` 用 `vi.mock` 包一层，保留真实的 Argon2id 实现，只记录调用。服务由 Nest 测试容器创建，`UsersRepository` 换成内存假仓储；最后一条用真实的 `DatabaseModule` 和 `AuthModule` 组装。覆盖内容：
+  - 正确凭据时 `toStrictEqual({ id, username })`，多出 `passwordHash` 也算失败，且不生成假哈希。
+  - `'  Demo_A '` 按 `demo_a` 查询。
+  - 错误密码、首尾多空格、大小写不同、空密码都返回 `null`，`verifyPassword` 收到的是原样的密码。
+  - 用户不存在时恰好校验一次，用的是 `$argon2id$v=19$m=19456,t=2,p=1$` 形式的假哈希。
+  - 4 种不合法用户名都不查库，仍然校验一次。
+  - 用户不存在、用户名不合法两种情况下，都要等假哈希校验完成才返回。
+  - 创建服务时不生成假哈希；5 个并发的首次调用加 1 个后续调用，只生成一次，6 次校验用的是同一个假哈希。
+  - 仓储抛错时原样抛出。
+  - 经真实 `AuthModule` 组装时，`ensureConnected` 失败会原样抛出，且不调用 `initialize`、不发 SQL。
+- 真实库 `apps/api/test/integration/auth-service.db.spec.ts` 5 条：在 `ledger_it` 写入一个虚构用户（真实 Argon2id 哈希），用真实 `AuthModule` 组装。原写法和 `'  Fixture_Carol '` 加正确密码都返回该用户；错误密码、不存在的用户名、不合法的用户名都返回 `null`。
+- 测试自身的核对：在 `apps/api/test/` 下临时放一份参考实现，把两个测试文件复制一份指向它。
+  - 正确实现：离线 16 条、真实库 5 条通过；离线连跑 10 次均通过。
+  - 8 种错误写法在离线测试中全部被发现：不校验假哈希（8 条失败）、不等假哈希校验完成就返回（8 条）、只缓存结果而不缓存 Promise（并发时生成多次，1 条）、创建服务时就生成假哈希（6 条）、trim 密码（1 条）、返回值带出 `passwordHash`（2 条）、不规范化用户名（5 条）、把数据库错误当成 `null`（2 条）。
+  - 真实库测试另外发现了带出 `passwordHash`（2 条）和不规范化（1 条）两种写法。
+  - 临时文件已全部删除。
+- 实现前运行：
+  - 离线 16 条全部因 `auth.service.ts` 不存在（Cannot find module）而失败。完整 API 测试 22 个文件，原有 151 条通过。
+  - `test:db` 11 个文件：新文件准备阶段因同一原因失败，5 条跳过；原有 67 条通过；运行后 `ledger_it` 上没有残留连接。
+  - `pnpm typecheck` 退出码 0；两个测试文件通过 Prettier（`--write` 只调整了一处换行）；生成契约无差异。
+- 未修改业务代码。耗时中位数的测量放在用户实现之后。
 
 ## 实际执行记录
 
