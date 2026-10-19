@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S20 已验收；当前步骤 M1-S21，把 express-session 挂到应用上，测试已就绪）。
+- 状态：**进行中**（M1-S21 已验收；当前步骤 M1-S22，登录凭据校验，待用户确认设计）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -70,7 +70,8 @@
 | M1-S18 | 会话期限规则：创建时算出闲置/绝对截止时间，续期不越过绝对期限，到达任一截止点即失效；会话 ID 摘要。纯函数，注入时钟。 | done |
 | M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
-| M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | 测试已就绪，等待用户实现 |
+| M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
+| M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | 待用户确认设计 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -492,7 +493,37 @@ M1-S20 验收证据（2026-10-15）：
   - `apps/api/test/integration/main-session.db.spec.ts` 5 条，启动真实的 `dist/main.js`：`SESSION_SECRET` 为空时进程以非 0 退出、输出含「SESSION_SECRET is required」且不含连接串；有密钥时启动，带 Cookie 请求 health 为 200、库里的会话行不变；在 sessions 表写入一行后，带签名 Cookie 请求 `/api/v1/auth/fixture-probe` 得到 404、无 Set-Cookie，且该行 `last_seen_at`、`idle_expires_at` 被续期、`absolute_expires_at` 不变；匿名请求和伪造签名都不写库；输出不含密钥和连接串，SIGTERM 后 `ledger_it` 上没有该进程留下的连接。
 - 测试自身的核对：在 `/tmp` 下建了一个临时 git worktree（共用依赖，不碰工作区），放入参考实现后运行：`session-config` 10 条、`session-mount` 8 条、原有 health/readiness/startup 4 条通过，`main-session` 5 条与 `session-store` 2 条通过且无残留进程和连接。再把参考实现改成挂在所有路径上，`session-mount` 中 health 与 ready 两条失败。worktree 已删除。
 - 实现前运行（工作区）：`session-config` 10 条因 `session-config.ts` 不存在、`session-mount` 8 条因 `configureSession` 未导出而失败，其余 133 条通过；`test:db` 中 `main-session` 有 2 条失败（无密钥时进程照常启动、20 秒后被测试终止；会话没有被续期），另外 3 条在当前代码下本来就成立（作为回归保护），其余 67 条通过；无残留进程和连接；`pnpm typecheck` 通过。未修改业务代码。
-- 验收：上述三个测试文件与完整 `test:db` 通过；`pnpm check` 退出码 0；`pnpm contracts` 无需 `SESSION_SECRET` 且生成契约无差异。
+- 验收：上述三个测试文件与完整 `test:db` 通过；`pnpm check` 退出码 0；`pnpm contracts` 无需 `SESSION_SECRET` 且生成契约无差异。已通过，证据见下。
+
+M1-S21 验收证据（2026-10-19）：
+- 实现：用户手写 `apps/api/src/modules/auth/session-config.ts`、`configure-app.ts` 的 `configureSession`、`main.ts` 的调用和 `AppModule` 对 `AuthModule` 的导入，并在 `.env.example` 加了 `SESSION_SECRET` 占位行（已自行提交为 `f98b161`、`1509814`、`62c0793`，提交内容与下面验收时的工作区一致）。评审中发现三处问题，用户已改正：`main.ts` 用 `configureSession` 替换了 `configureApp`，全局前缀因此丢失；`readSessionSecret` 的参数写成了 `string`，`pnpm typecheck` 报 `TS2345`；错误信息写成 `Session secret ...` 而不是变量名，导致单元测试 8 条、`main-session` 1 条失败。
+- `pnpm --filter @ledger/api exec vitest run test/session-config.spec.ts test/session-mount.spec.ts`：2 个文件、18 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：10 个文件、72 条通过，其中 `main-session.db.spec.ts` 5 条：无密钥时进程以非 0 退出并提示 `SESSION_SECRET is required`；带 Cookie 的 health 为 200 且不碰会话；有效签名的 Cookie 续期了会话；匿名请求和伪造签名不写库；输出不含密钥和连接串。运行后 `ledger_it` 上连接数为 0。
+- `pnpm check`：退出码 0；API 21 个文件、151 条，Web 1 个文件、2 条，build 完成。
+- `env -u SESSION_SECRET pnpm contracts`：退出码 0，输出中没有 `SESSION_SECRET`；两份生成契约无 Git 差异。
+- 改动的 4 个 TypeScript 文件通过 Prettier。
+- 没有验证到：本机 `.env` 还没有 `SESSION_SECRET`，`pnpm dev` 没有实际启动过；数据库不可用时会话查询返回的是 5xx，映射成 503 留到 M1-T08；还没有接口往会话里写东西，登录时下发的 `Set-Cookie` 留到登录接口那一步。
+- 用户暂未采纳的建议（不影响验收）：`MIN_SECRET_LENGTH` 仍为导出；`configure-app.ts` 用相对路径导入，没有用 `@/` 别名；`.env.example` 的占位值只有 29 个字符，照抄会报「至少 32 个字符」。
+- 环境问题：仓库根和 `apps/api` 下 `node_modules/.bin` 的 11 个命令脚本仍指向 S21 测试准备时用过、现已删除的临时目录 `/tmp/ledger-s21-scratch`（修改时间 2026-10-15 21:02）。其中 `prettier` 无法运行，其余 10 个只是 `NODE_PATH` 指向不存在的目录，实际仍可用（本步的 vitest、tsc、nest 均正常）。本步改用 `node node_modules/prettier/bin/prettier.cjs` 检查格式；修复方法待用户确认。
+
+### M1-S22 详情
+
+- 来源：PRD M1-R03「错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性」、§5「密码原样验证，不 trim」、技术方案 §6「用户名不存在也做等价的哈希验证路径以减少明显差异」。这是 M1-T06（登录）的第一小步：先把「这组用户名和密码对不对」做成一个不碰 HTTP 的服务方法；接口、输入 Schema、Session ID 轮换和保存留到后续步骤。
+- 计划：新建 `apps/api/src/modules/auth/auth.service.ts`，`AuthService.verifyCredentials(username: string, password: string): Promise<PublicUser | null>`。
+  - 先 `normalizeUsername(username)`，合法时用 `findCredentialsByUsername` 查凭据，再用 `verifyPassword` 比对；通过时返回 `{ id, username }` 普通对象，不带 `passwordHash`。
+  - 用户名格式不合法、用户不存在、密码错误，三种情况都返回 `null`，调用方无从区分。
+  - 每次调用恰好校验一次哈希：用户名不合法或用户不存在时，用一份「假哈希」调用 `verifyPassword` 并丢弃结果。否则「用户不存在」的请求会比「密码错误」少花约 9ms（S15 测得的单次校验耗时），别人可以凭响应快慢猜出哪些用户名存在。查库命中与未命中仍有差异，所以这只是缩小时间差，不是恒定时间。
+  - 假哈希在第一次需要时用 `hashPassword(随机 32 字节)` 生成，参数与真实哈希相同，缓存这个 Promise（与 `ensureConnected` 同理：并发的首次调用只生成一次）。不写死在代码里，也不在启动时计算。
+  - 密码原样传给 `verifyPassword`，不 trim。长度 12～128 的检查放在以后的输入 Schema（返回 400），本方法不重复。
+  - 数据库错误原样抛出，不能当成凭据错误返回 `null`。否则数据库一断，用户看到的是「用户名或密码错误」，违反 PRD「503 显示服务不可用，不误报密码错误」；映射成 503 留到 M1-T08。
+  - `AuthModule` 导入 `UsersModule`，提供 `AuthService`。
+- 待用户确认：上面三点设计，即用户名不合法时也校验一次哈希、假哈希按需生成并缓存、密码长度留给 Schema。
+- 测试（确认后由助手先写）：
+  - 离线 `apps/api/test/auth.service.spec.ts`，用假 `UsersRepository`，`password-hasher` 用 `vi.mock` 包一层（保留真实实现，只记录调用）：正确凭据返回 `toStrictEqual({ id, username })`；`'  Demo_A '` 按 `demo_a` 查询；错误密码、首尾多空格、大小写不同返回 `null`；用户不存在返回 `null`，`verifyPassword` 恰好调用一次且用的是 `$argon2id$` 哈希；用户名不合法时不查库、仍校验一次；并发的首次「用户不存在」调用只生成一次假哈希；仓储抛错时原样抛出。
+  - 真实库 `apps/api/test/integration/auth-service.db.spec.ts`：用真实的 `AuthModule` 组装，在 `ledger_it` 写入一个虚构用户后，正确密码返回该用户，错误密码和不存在的用户名返回 `null`。
+  - 另外测量「用户存在但密码错误」和「用户不存在」两种调用的耗时中位数，作为证据记录，不写成断言（耗时断言在不同机器上不稳定）。
+- 注意事项：不写 Controller、Schema、regenerate、Cookie，不做限流和 Origin 检查（M1-T08）。
+- 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0。
 
 ## 实际执行记录
 
