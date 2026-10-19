@@ -1,6 +1,6 @@
 # 技术约束与命令实情
 
-现状核对于 2026-10-14（M1-S10）。命令和版本以各 `package.json` 与代码为准；README、计划文档里的命令可能滞后，或只是目标。
+现状核对于 2026-10-19（M1-S21）。命令和版本以各 `package.json` 与代码为准；README、计划文档里的命令可能滞后，或只是目标。
 
 ## 硬约束
 
@@ -27,6 +27,7 @@
 - health 不查库；ready 执行 `SELECT 1`，失败返回 503 `{ "status": "not_ready" }`。
 - 当前的连接入口是 `ConnectionLifecycleService.ensureConnected()`：并发只连一次，失败后可重试。
 - `.env` 在仓库根，API 的 `ConfigModule` 以 `../../.env` 读取。
+- 会话（M1-S21）：`main.ts` 调用 `configureSession`，把 express-session + `PostgresSessionStore` 只挂在 `/api/v1/auth`（`app.use` 不受全局前缀影响，路径写全）。Cookie 为 `ledger.sid`、HttpOnly、SameSite=Lax、Path=/、本地 Secure=false。`SESSION_SECRET`（至少 32 个字符）在安装中间件时由 `readSessionSecret` 检查，不放进 `validateEnvironment`，所以 contracts、TypeORM CLI、seed 不需要它；`generate-openapi.ts` 不调用 `configureSession`。普通 API 测试的密钥由 `setup-env.ts` 固定为虚构值。以后需要身份的业务路径要加进 `SESSION_PATHS`，不要挂到全部路径（否则数据库离线时带 Cookie 的 health 会失败）。
 - 日志不写连接串、密码、Session Cookie、AI 原始问题、完整请求/响应或账本备注。
 
 ## 业务不变量（来自技术方案，做到对应阶段时遵守）
