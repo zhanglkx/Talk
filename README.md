@@ -31,7 +31,7 @@ pnpm install
 cp .env.example .env
 ```
 
-`.env` 需要两项：数据库连接串（必须带数据库名）和会话签名密钥 `SESSION_SECRET`（至少 32 个字符，用 `openssl rand -base64 32` 生成；`.env.example` 里的占位值要换掉）：
+`.env` 需要两项：数据库连接串（必须带数据库名）和会话签名密钥 `SESSION_SECRET`（至少 32 个字符，用 `openssl rand -base64 32` 生成；`.env.example` 里这一项留空，要自己填上）：
 
 ```bash
 DATABASE_URL=postgresql://127.0.0.1:5432/postgres
