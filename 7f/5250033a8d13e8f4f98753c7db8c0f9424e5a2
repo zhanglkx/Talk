@@ -1,0 +1,20 @@
+docs/plan/M1/README.md
+  s_2da533954eb921::t_d799abbdedde81 4,73-74,496-498,500-526
+  s_2da533954eb921::t_2293dabe81688a 499
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "7f5250033a8d13e8f4f98753c7db8c0f9424e5a2",
+  "prompts": {},
+  "sessions": {
+    "s_2da533954eb921": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "20359eac-ba93-4bd8-8100-434e6ac06246",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
