@@ -8,7 +8,6 @@
     "**/node_modules": true,
     "**/dist": true,
     ".vscode": false,
-    ".env": true,
     "**/docs": true,
     ".DS_Store": true,
     "pnpm-workspace.yaml": true,
@@ -20,7 +19,6 @@
     "apps/api/test": true,
     "**/.DS_Store": true,
     ".vscode": false,
-    ".env": true,
     ".DS_Store": true
   },
   "editor.formatOnSave": true,
