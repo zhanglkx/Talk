@@ -1,0 +1,23 @@
+README.md
+  s_e54dc915e658bd::t_e6d25c4e219efa 12,34,38,41
+.kiro/steering/structure.md
+  s_e54dc915e658bd::t_e6d25c4e219efa 5
+.kiro/steering/tech.md
+  s_e54dc915e658bd::t_e6d25c4e219efa 3,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "09720152d7b071bfcbe0c29e9473a298348e5113",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
