@@ -1,5 +1,7 @@
-import { RequestMethod, type INestApplication, StandardSchemaValidationPipe } from '@nestjs/common'
+import { RequestMethod, StandardSchemaValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import type { NestExpressApplication } from '@nestjs/platform-express'
+import { rejectMalformedJson } from '@/common/middleware/reject-malformed-json.js'
 import {
   readSessionSecret,
   SESSION_COOKIE_NAME,
@@ -10,13 +12,18 @@ import { PostgresSessionStore } from '@/modules/auth/session-store.js'
 import { SessionsRepository } from '@/modules/auth/sessions.repository.js'
 import session from 'express-session'
 
-export function configureApp(app: INestApplication): void {
+// 参数类型是 Express 版的应用：useBodyParser 只有它才有。
+export function configureApp(app: NestExpressApplication): void {
+  // 自己注册 JSON 解析器，紧跟着装上它的错误处理（Express 的错误处理只接得住排在它前面的中间件）。
+  // Nest 在 init 时发现已有 jsonParser，就不再注册默认的那一个；解析选项与默认相同。
+  app.useBodyParser('json')
+  app.use(rejectMalformedJson)
   app.useGlobalPipes(new StandardSchemaValidationPipe())
   app.setGlobalPrefix('api/v1', {
     exclude: [{ path: 'internal/ready', method: RequestMethod.GET }],
   })
 }
-export function configureSession(app: INestApplication): void {
+export function configureSession(app: NestExpressApplication): void {
   // 先检查密钥再安装：密钥不合格时直接报错，一个中间件都不装。
   const secret = readSessionSecret(app.get(ConfigService).get<unknown>('SESSION_SECRET'))
 
