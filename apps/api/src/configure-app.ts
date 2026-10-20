@@ -1,16 +1,17 @@
-import { RequestMethod, type INestApplication } from '@nestjs/common'
+import { RequestMethod, type INestApplication, StandardSchemaValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   readSessionSecret,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
   SESSION_PATHS,
-} from './modules/auth/session-config.js'
-import { PostgresSessionStore } from './modules/auth/session-store.js'
-import { SessionsRepository } from './modules/auth/sessions.repository.js'
+} from '@/modules/auth/session-config.js'
+import { PostgresSessionStore } from '@/modules/auth/session-store.js'
+import { SessionsRepository } from '@/modules/auth/sessions.repository.js'
 import session from 'express-session'
 
 export function configureApp(app: INestApplication): void {
+  app.useGlobalPipes(new StandardSchemaValidationPipe())
   app.setGlobalPrefix('api/v1', {
     exclude: [{ path: 'internal/ready', method: RequestMethod.GET }],
   })
