@@ -1,0 +1,14 @@
+apps/api/src/modules/users/username.ts
+  h_67f487dacd1d7d 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "4234b1272ac9f38d2927e1ba0f2704d9998c0e25",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
