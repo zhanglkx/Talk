@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { Body, Controller, HttpCode, Post } from '@nestjs/common'
-import type { INestApplication } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 import { DataSource } from 'typeorm'
@@ -19,7 +19,7 @@ const probePath = '/api/v1/schema-probe/login'
 
 const validPassword = 'fixture-passw0rd'
 
-let app: INestApplication | undefined
+let app: NestExpressApplication | undefined
 
 afterEach(async () => {
   try {
@@ -59,7 +59,7 @@ async function createApp() {
     .overrideProvider(ConnectionLifecycleService)
     .useValue({ ensureConnected })
     .compile()
-  app = moduleRef.createNestApplication({ logger: false })
+  app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false })
   configureApp(app)
   await app.init()
   return { app, server: app.getHttpServer(), received, ensureConnected, initialize }

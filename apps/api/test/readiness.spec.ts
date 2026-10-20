@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import type { INestApplication } from '@nestjs/common'
 import { Logger } from '@nestjs/common'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { Test } from '@nestjs/testing'
 import { getDataSourceToken } from '@nestjs/typeorm'
 import request from 'supertest'
@@ -39,7 +40,7 @@ async function createApp(databaseAvailable: boolean): Promise<{
     .overrideProvider(getDataSourceToken())
     .useValue(dataSource)
     .compile()
-  const testApp = moduleRef.createNestApplication()
+  const testApp = moduleRef.createNestApplication<NestExpressApplication>()
   configureApp(testApp)
   await testApp.init()
   return { app: testApp, ensureConnected, runMigrations }

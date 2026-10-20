@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto'
 import type { INestApplication } from '@nestjs/common'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 import { DataSource } from 'typeorm'
@@ -16,7 +17,7 @@ import { ConnectionLifecycleService } from '../src/database/connection-lifecycle
 const configureAppPath = new URL('../src/configure-app.ts', import.meta.url).href
 type ConfigureSession = (app: INestApplication) => void
 
-let app: INestApplication | undefined
+let app: NestExpressApplication | undefined
 
 afterEach(async () => {
   try {
@@ -64,7 +65,7 @@ async function createOfflineApp() {
     .overrideProvider(ConnectionLifecycleService)
     .useValue({ ensureConnected })
     .compile()
-  app = moduleRef.createNestApplication()
+  app = moduleRef.createNestApplication<NestExpressApplication>()
   configureApp(app)
   configureSession(app)
   await app.init()

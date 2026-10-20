@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import type { INestApplication } from '@nestjs/common'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -7,7 +7,7 @@ import { AppModule } from '../src/app.module.js'
 import { configureApp } from '../src/configure-app.js'
 import { ConnectionLifecycleService } from '../src/database/connection-lifecycle.service.js'
 
-let app: INestApplication | undefined
+let app: NestExpressApplication | undefined
 
 afterEach(async () => {
   await app?.close()
@@ -23,7 +23,7 @@ describe('GET /api/v1/health', () => {
       .overrideProvider(ConnectionLifecycleService)
       .useValue({ ensureConnected })
       .compile()
-    app = moduleRef.createNestApplication()
+    app = moduleRef.createNestApplication<NestExpressApplication>()
     configureApp(app)
     await app.init()
 

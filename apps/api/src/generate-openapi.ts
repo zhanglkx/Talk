@@ -2,11 +2,12 @@ import 'reflect-metadata'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { NestFactory } from '@nestjs/core'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from '@/app.module.js'
 import { configureApp } from '@/configure-app.js'
 
-const app = await NestFactory.create(AppModule, { logger: false })
+const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false })
 
 try {
   configureApp(app)
