@@ -1,0 +1,12 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "2da8e14b0ea850498521f8b1191fe745750eefc0",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
