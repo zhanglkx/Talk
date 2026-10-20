@@ -9,7 +9,7 @@ const DEMO_ACCOUNTS = [
   { username: 'demo_b', variable: 'SEED_DEMO_B_PASSWORD' },
 ] as const
 
-export function readDemoAccounts(environment: Record<string, string | undefined>): DemoAccount[] {
+const readDemoAccounts = (environment: Record<string, string | undefined>): DemoAccount[] => {
   return DEMO_ACCOUNTS.map(({ username, variable }) => {
     const password = environment[variable]
     if (password === undefined || password.length < 12 || password.length > 128) {
@@ -30,3 +30,5 @@ export async function seedDemoUsers(
   }
   return results
 }
+
+export { readDemoAccounts }
