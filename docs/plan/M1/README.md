@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S21 已验收；当前步骤 M1-S22，登录凭据校验，测试已就绪）。
+- 状态：**进行中**（M1-S22 已验收；当前步骤 M1-S23，登录请求体 Schema 与 Zod 接入，待用户确认设计）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -71,7 +71,8 @@
 | M1-S19 | `SessionsRepository`：按会话 ID 摘要读写 sessions 表（创建、读取有效会话、更新、删除）。不引入 express-session。 | done |
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
-| M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | 测试已就绪，等待用户实现 |
+| M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
+| M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | 待用户确认设计 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -553,6 +554,53 @@ M1-S22 测试准备记录（2026-10-19）：
   - `test:db` 11 个文件：新文件准备阶段因同一原因失败，5 条跳过；原有 67 条通过；运行后 `ledger_it` 上没有残留连接。
   - `pnpm typecheck` 退出码 0；两个测试文件通过 Prettier（`--write` 只调整了一处换行）；生成契约无差异。
 - 未修改业务代码。耗时中位数的测量放在用户实现之后。
+
+M1-S22 实现进度（2026-10-20）：
+- 用户手写 `auth.service.ts` 并注册到 `auth.module.ts`（已自行提交为 `57b98cf`、`906554f`）。
+- `pnpm --filter @ledger/api exec vitest run test/auth.service.spec.ts`：16 条中 15 条通过（`verifyCredentials` 的行为全部通过）；失败的 1 条是经真实 `AuthModule` 组装，报 `Nest can't resolve dependencies of the AuthService (?) ... UsersRepository at index [0]`。原因是 `auth.module.ts` 的 `imports` 只有 `DatabaseModule`，缺 `UsersModule`。
+- 由于 `AppModule` 导入了 `AuthModule`，同一个错误让整个应用无法创建：完整 API 测试 22 个文件中 8 个失败、共 17 条（health、ready、启动、关闭、会话挂载、SessionsRepository、contracts 和上面那条）。`pnpm contracts` 退出码 1 且没有错误输出（`generate-openapi.ts` 设了 `logger: false`）；另用 `abortOnError: false` 创建 `AppModule`，确认是同一条依赖错误。`pnpm typecheck` 通过（这是运行时的依赖注入错误，类型检查发现不了）。
+- 未运行 `test:db`：`main-session.db.spec.ts` 启动的 `dist/main.js` 会因同一原因失败，修正后一起验收。未修改业务代码。
+
+M1-S22 验收证据（2026-10-20）：
+- 实现：用户手写 `apps/api/src/modules/auth/auth.service.ts`（`57b98cf`），在 `auth.module.ts` 中注册 `AuthService`，并按上面的报告把 `UsersModule` 加进 `imports`；`exports` 恢复为只有 `SessionsRepository`（登录 Controller 会写在同一个模块里，不需要导出）。
+- `pnpm --filter @ledger/api exec vitest run test/auth.service.spec.ts`：16 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：11 个文件、77 条通过，其中 `auth-service.db.spec.ts` 5 条；`main-session.db.spec.ts` 5 条恢复通过。运行后 `ledger_it` 上连接数为 0。
+- `pnpm check`：退出码 0；API 22 个文件、167 条，Web 1 个文件、2 条，build 完成；生成契约无 Git 差异。两个文件通过 Prettier。
+- 耗时（Apple M4，`ledger_it`，用构建产物和真实 `AuthModule` 组装；临时脚本，已删除；写入的虚构用户已删除）。先预热连接和假哈希，再把四种调用交替各执行 60 次，取中位数，运行两次：
+
+  | 情况 | 第一次 | 第二次 |
+  |---|---|---|
+  | 用户存在、密码错误 | 9.27ms | 9.16ms |
+  | 用户不存在 | 9.25ms | 9.24ms |
+  | 用户名格式不合法（不查库） | 8.19ms | 8.25ms |
+  | 密码正确（参考） | 9.22ms | 9.32ms |
+
+  「用户存在但密码错误」和「用户不存在」的差别不到 0.1ms，远小于单次的波动（最小约 8ms、最大 11～22ms），无法凭耗时区分账号是否存在。格式不合法的用户名快约 1ms，因为它不查库；格式规则是公开的，这个差异不泄露账号是否存在。
+- 没有验证到：还没有 HTTP 接口调用它；数据库错误映射成 503 留到 M1-T08。
+
+### M1-S23 详情
+
+- 来源：M1 PRD §4「username/password 的规则……实施时要写入 Schema 与测试」，接口表「login：400 参数非法」；技术方案 §9「Zod Standard Schema 与当前 Nest/Swagger 锁定版本的集成先做小测试再接入，不能只写类型断言就声称运行时校验」；steering「输入校验用 Zod Standard Schema，不另选校验库」。这是 M1-T06（登录）的第二小步：登录接口收到的请求体要先检查格式，不合格直接 400，不去查库、不算哈希。
+- 计划：接入 Zod，定义登录请求体的 Schema，并证明它在当前锁定的 Nest 和 Swagger 版本上同时做到两件事：运行时真的拦住不合格的请求，以及生成的 OpenAPI 里能看到这些规则。本步不写登录 Controller。
+- 已核对的事实（看过本机安装的源码，还没有实际运行）：
+  - Nest `@nestjs/common@12.1.2` 自带 `StandardSchemaValidationPipe`，配合 `@Body({ schema })` 使用。Pipe 是 Nest 在调用 Controller 方法之前处理参数的一层。它只检查声明了 `schema` 的参数，没有声明的原样放行；校验失败抛 400，信息形如 `password: <Zod 的提示>`；默认把 Schema 解析后的值交给 Controller。
+  - `@nestjs/swagger@12.0.2` 通过 Schema 上的 `~standard.jsonSchema` 把它转成 OpenAPI。Zod 是否提供这个接口，要装上之后实测。
+  - npm 上 `zod` 的最新版本为 `4.6.7`（2026-10-12 发布）。
+- 设计（待用户确认）：
+  - 依赖：`pnpm --filter @ledger/api add zod@4.6.7 --save-exact`，由助手安装并记录锁文件的变化。如果被 pnpm 的发布时长限制挡住，另行确认是否加例外。
+  - `apps/api/src/modules/auth/schemas.ts` 导出 `LoginBodySchema`：
+    - `username`：字符串，规则与 `normalizeUsername` 相同（去掉首尾空白后为 3～32 个 `A-Za-z0-9_`），不合格返回 400。通过后仍交给 `verifyCredentials` 规范化，所以 Schema 不必输出规范化后的值。
+    - `password`：字符串，长度 12～128，按 `.length` 计数，与 seed 的检查一致；原样保留，不 trim。
+    - 多余的字段（例如 `userId`）丢弃，不报错。Controller 只拿得到这两个字段，客户端无法借请求体冒充别人。
+    - 用户名规则怎样写才能只维护一处、又能出现在 OpenAPI 里，装好 Zod 后由助手实测几种写法，再定具体写法。
+  - Pipe 全局注册：在 `configureApp` 里加 `app.useGlobalPipes(new StandardSchemaValidationPipe())`。全局注册的好处是以后每个接口只要写 `@Body({ schema })` 就会生效。如果改成逐个参数挂 Pipe，漏挂一次，Schema 就只是摆设：类型检查照常通过，运行时却什么都不检查。没有声明 Schema 的现有接口不受影响。
+- 动作：
+  1. 用户确认上述设计后，助手安装 Zod，实测 Pipe、OpenAPI 转换和用户名规则的写法，把结论补进本节。
+  2. 助手先写测试：在测试文件里放一个只用于测试的 Controller，用 `@Body({ schema: LoginBodySchema })` 接收，应用经 `configureApp` 配置。覆盖：合法请求通过且密码原样到达（含首尾空格）；缺字段、类型不对、用户名不合法、密码 11 个和 129 个字符都返回 400，且不调用 Controller；400 的响应里不带密码原文；多余字段被丢弃；health 仍为 200。另外用这个 Controller 生成 OpenAPI，检查请求体里有两个字段及长度限制。运行并确认因 `schemas.ts` 不存在而失败。
+  3. 用户手写 `schemas.ts` 和 `configureApp` 中的一行注册。
+  4. 助手运行测试和 `pnpm check`，记录证据。
+- 注意事项：400 的响应体暂时是 Nest 默认的形状（`message` 数组、`error`、`statusCode`）；按技术方案统一成 `error.code/message/requestId/fields`，留到 M1-T08 的错误映射步骤。本步没有真实接口使用这个 Schema，所以 `docs/openapi.json` 不会变化。不写 Controller、regenerate、限流或 Origin 检查。
+- 验收：新增测试通过；`pnpm check` 退出码 0；生成契约无差异。
 
 ## 实际执行记录
 
