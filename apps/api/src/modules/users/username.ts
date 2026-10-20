@@ -3,7 +3,7 @@
 
 // 只允许 ASCII 字母、数字、下划线，长度 3～32（与 users.username 的 VARCHAR(32) 一致）。
 // 大写也要允许：检查发生在转小写之前。
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,32}$/
+export const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,32}$/
 
 // 合法时返回库里保存的形式（去掉首尾空白、转小写）；不合法返回 null，由调用方决定怎么回应。
 export function normalizeUsername(input: string): string | null {
