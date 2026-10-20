@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S22 已验收；当前步骤 M1-S23，登录请求体 Schema 与 Zod 接入，待用户确认设计）。
+- 状态：**进行中**（M1-S22 已验收；当前步骤 M1-S23，登录请求体 Schema 与 Zod 接入，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -72,7 +72,7 @@
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
-| M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | 待用户确认设计 |
+| M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -590,17 +590,92 @@ M1-S22 验收证据（2026-10-20）：
   - 依赖：`pnpm --filter @ledger/api add zod@4.6.7 --save-exact`，由助手安装并记录锁文件的变化。如果被 pnpm 的发布时长限制挡住，另行确认是否加例外。
   - `apps/api/src/modules/auth/schemas.ts` 导出 `LoginBodySchema`：
     - `username`：字符串，规则与 `normalizeUsername` 相同（去掉首尾空白后为 3～32 个 `A-Za-z0-9_`），不合格返回 400。通过后仍交给 `verifyCredentials` 规范化，所以 Schema 不必输出规范化后的值。
-    - `password`：字符串，长度 12～128，按 `.length` 计数，与 seed 的检查一致；原样保留，不 trim。
+    - `password`：字符串，长度 12～128，按 Unicode 码点计数（见下方决定，原计划的「按 `.length` 计数」已放弃）；原样保留，不 trim。
     - 多余的字段（例如 `userId`）丢弃，不报错。Controller 只拿得到这两个字段，客户端无法借请求体冒充别人。
     - 用户名规则怎样写才能只维护一处、又能出现在 OpenAPI 里，装好 Zod 后由助手实测几种写法，再定具体写法。
   - Pipe 全局注册：在 `configureApp` 里加 `app.useGlobalPipes(new StandardSchemaValidationPipe())`。全局注册的好处是以后每个接口只要写 `@Body({ schema })` 就会生效。如果改成逐个参数挂 Pipe，漏挂一次，Schema 就只是摆设：类型检查照常通过，运行时却什么都不检查。没有声明 Schema 的现有接口不受影响。
 - 动作：
   1. 用户确认上述设计后，助手安装 Zod，实测 Pipe、OpenAPI 转换和用户名规则的写法，把结论补进本节。
   2. 助手先写测试：在测试文件里放一个只用于测试的 Controller，用 `@Body({ schema: LoginBodySchema })` 接收，应用经 `configureApp` 配置。覆盖：合法请求通过且密码原样到达（含首尾空格）；缺字段、类型不对、用户名不合法、密码 11 个和 129 个字符都返回 400，且不调用 Controller；400 的响应里不带密码原文；多余字段被丢弃；health 仍为 200。另外用这个 Controller 生成 OpenAPI，检查请求体里有两个字段及长度限制。运行并确认因 `schemas.ts` 不存在而失败。
-  3. 用户手写 `schemas.ts` 和 `configureApp` 中的一行注册。
+  3. 用户手写 `schemas.ts`、`configureApp` 中的一行注册，以及下方决定带来的两处改动（`username.ts` 导出正则、`demo-users.ts` 改用 `PasswordSchema`）。
   4. 助手运行测试和 `pnpm check`，记录证据。
 - 注意事项：400 的响应体暂时是 Nest 默认的形状（`message` 数组、`error`、`statusCode`）；按技术方案统一成 `error.code/message/requestId/fields`，留到 M1-T08 的错误映射步骤。本步没有真实接口使用这个 Schema，所以 `docs/openapi.json` 不会变化。不写 Controller、regenerate、限流或 Origin 检查。
 - 验收：新增测试通过；`pnpm check` 退出码 0；生成契约无差异。
+
+M1-S23 依赖与实测记录（2026-10-20）：
+- 用户回复「开始 S23」，同意上面的设计。
+- 依赖：`pnpm --filter @ledger/api add zod@4.6.7 --save-exact`。`apps/api/package.json` 的 `dependencies` 新增 `"zod": "4.6.7"`；`pnpm-lock.yaml` 新增 8 行（importer 条目和该包本身）。zod 没有依赖、没有安装脚本，实际下载 1 个包；供应链检查通过，没有被发布时长限制挡住，没有修改 `pnpm-workspace.yaml`。peer 依赖警告仍只有原有的 `@nestjs/swagger` 与 TypeScript 7。
+- 实测方式：在 `apps/api/test/` 下临时放一个 spec，内含测试用 Controller，用 supertest 发请求，再用 `SwaggerModule.createDocument` 生成文档。文件已删除，没有改业务代码。
+- Nest Pipe（全局注册 `new StandardSchemaValidationPipe()`，`@Body({ schema })`）：
+  - 不合格返回 400，响应体为 Nest 默认形状 `{ message: [...], error: 'Bad Request', statusCode: 400 }`。`message` 每项是「字段: Zod 提示」，例如 `password: Too small: expected string to have >=12 characters`，不含提交的值。
+  - 没有请求体、`text/plain` 请求体都返回 400（`expected object, received undefined`），JSON 数组也返回 400。
+  - 通过时 Controller 收到的是 Schema 解析后的值：多余字段（`userId`）被丢弃，密码首尾空格原样保留。
+  - 没有写 `schema` 的 `@Body()` 原样放行，不受影响。
+  - 不注册全局 Pipe 时，`@Body({ schema })` 完全不生效：不合格的请求返回 200，`userId` 和 `null` 请求体都直接传给 Controller。这证实了必须全局注册。
+- Swagger：Zod 4.6.7 的 Schema 带 `~standard.jsonSchema`。Swagger 12.0.2 把它内联成该接口的 `requestBody`（`application/json`，必填），不生成 `components`。
+- 用户名规则，比较了 4 种写法，用 7 个容易出错的输入（首尾空格、制表符和换行、不换行空格、BOM、U+2028、开尔文符号、零宽空格）和 `normalizeUsername` 对照：
+  - A `z.string().trim().regex(/^[A-Za-z0-9_]{3,32}$/)`：7 个结果全部一致；OpenAPI 显示 `pattern`。
+  - B `z.string().refine((v) => normalizeUsername(v) !== null)`：结果一致，但 OpenAPI 只有 `type: string`，规则不可见。
+  - C `trim().min(3).max(32).regex(/^[A-Za-z0-9_]+$/)`：结果一致，OpenAPI 有长度和 `pattern`，但规则拆成三处，和 `normalizeUsername` 不再共用同一个正则。
+  - D 在正则两端写 `\s*` 而不 trim：输出保留空白，OpenAPI 的 `pattern` 难读。
+  - 建议 A，并让 `username.ts` 导出这个正则、`normalizeUsername` 也改用它，规则只写一处。`.trim()` 让 Controller 收到去掉空白的用户名，`verifyCredentials` 再规范化一次也没有影响。OpenAPI 里的 `pattern` 描述的是去掉空白之后的值，比服务端实际接受的更严格，客户端按它检查不会误放行。
+- 发现的问题：密码长度的计数单位。Zod 4.6.7 的 `min`/`max` 按 Unicode 码点计数（`zod/v4/core/checks.js` 中用 `codePointLength`，emoji 算 1 个），而 seed 的 `readDemoAccounts` 用 `.length`（UTF-16 单元，emoji 算 2 个）。实测 6 个 emoji 组成的密码在 Zod 下是 6 个字符，被拒绝；seed 按 12 个字符接受。用这种密码 seed 出来的账号，登录永远返回 400。OpenAPI 的 `minLength`/`maxLength` 按 JSON Schema 规范也按码点计。原计划写的「按 `.length` 计数，与 seed 一致」用 Zod 内置的 `min`/`max` 做不到。待用户二选一：
+  - 方案 1（建议）：统一按码点。`schemas.ts` 单独导出密码 Schema（`z.string().min(12).max(128)`），seed 改用它检查；Zod、OpenAPI、seed 三处一致。要改 `demo-users.ts`（业务代码，用户手写），助手在 `demo-users.spec.ts` 补 emoji 用例。现有 ASCII 用例不受影响。
+  - 方案 2：Zod 改用 `refine` 按 `.length` 检查，seed 不改；代价是 OpenAPI 里的密码没有长度限制。
+
+M1-S23 决定与测试准备记录（2026-10-20）：
+- 用户把密码计数方式交给助手按业界做法决定。决定采用方案 1：按 Unicode 码点计数。依据如下：
+  - NIST SP 800-63B-4（2025 年 8 月版，美国政府数字身份指南，业界密码规则最常引用的标准）的密码要求，原文为「Each Unicode code point SHALL be counted as a single character when evaluating password length」。助手于 2026-10-20 从 `pages.nist.gov/800-63-4/sp800-63b.html` 核对过原文。
+  - Zod（`min`/`max`）和 OpenAPI/JSON Schema（`minLength`/`maxLength`）本来就按码点计数。选方案 1，登录检查、契约和 seed 三处一致，规则只写在 `PasswordSchema` 一处；选方案 2，要另写一套计数逻辑，契约里也看不到长度限制。
+  - 对 ASCII 和中文密码，两种计数结果相同，只有 emoji 等 BMP 之外的字符不同，所以现有账号和测试不受影响。
+- 同一节 NIST 里还有两条与本项目 PRD 不同，本步不采纳，只记录：
+  - 单因素密码 SHALL 至少 15 个字符。PRD 定的是 12。
+  - 接受 Unicode 时 SHOULD 先做 NFC 规范化再哈希。PRD 规定密码「原样验证」，做规范化要连 seed 和已有哈希一起改。
+  - 两条都要先改 PRD，再单独开一步。
+- 待用户实现（用户手写）：
+  - `apps/api/src/modules/users/username.ts`：把 `USERNAME_PATTERN` 改为命名导出，不加 `g`/`y` 标志。`normalizeUsername` 继续使用它。
+  - 新建 `apps/api/src/modules/auth/schemas.ts`：
+    - `PasswordSchema = z.string().min(12).max(128)`。
+    - `LoginBodySchema = z.object({ username: z.string().trim().regex(USERNAME_PATTERN), password: PasswordSchema })`。
+    - 正则从 `username.ts` 导入，不要复制一份。用 `z.object`，不用 `strictObject`（多余字段会报 400）或 `looseObject`（多余字段会保留）。
+  - `apps/api/src/configure-app.ts` 的 `configureApp`：加 `app.useGlobalPipes(new StandardSchemaValidationPipe())`（从 `@nestjs/common` 导入）。
+  - `apps/api/src/scripts/demo-users.ts` 的 `readDemoAccounts`：改用 `PasswordSchema.safeParse(environment[variable])` 检查，返回 `result.data`。错误信息不变。只判断 `.success`、却仍返回原来的变量，类型检查会报 `TS2322`：TypeScript 不知道它已经不是 `undefined`。
+- 新增 `apps/api/test/auth-schemas.spec.ts`，65 条，不经过 HTTP：
+  - `USERNAME_PATTERN` 从 `username.ts` 导出，`source` 为 `^[A-Za-z0-9_]{3,32}$`，没有标志。
+  - 28 个用户名（含各种 Unicode 空白、BOM、全角字母、零宽空格、开尔文符号），`LoginBodySchema` 的判断与 `normalizeUsername` 逐一相同。通过时输出只去掉首尾空白、不转小写。
+  - 缺字段、类型不对、请求体不是对象时都拒绝。
+  - 多余字段（`userId`、`isAdmin`）被丢弃。
+  - 密码原样保留，包括首尾空格。
+  - `PasswordSchema` 接受 12/128 个 ASCII、12 个汉字、12 个空格、12/65/128 个 emoji；拒绝空串、11/129 个 ASCII、6/11/129 个 emoji 和非字符串。
+  - 7 种长度下，登录请求体的密码规则与 `PasswordSchema` 相同。
+- 新增 `apps/api/test/login-body-validation.spec.ts`，22 条。用真实 `AppModule` 加一个只在测试里存在的 Controller，经 `configureApp` 配置，数据库一律不可用：
+  - 合法请求为 200。Controller 收到的用户名已去掉首尾空白，`userId` 被丢弃，密码原样。整个过程不连库。
+  - 5 种合法密码为 200：ASCII 12/128 个、emoji 12/128 个、中文。
+  - 10 种不合格请求体返回 400，不调用 Controller、不连库，报错提到对应字段，且不包含提交的用户名或密码原文。
+  - 没有请求体、`text/plain`、JSON 数组、JSON 字符串都返回 400。
+  - 装上全局 Pipe 后，health 仍为 200。
+  - 生成的 OpenAPI 中，`requestBody` 与预期完全一致：两个必填字段、共享正则的 `pattern`、密码 `minLength: 12`/`maxLength: 128`。
+- `apps/api/test/demo-users.spec.ts` 新增 6 条，共 16 条：
+  - 12/65/128 个 emoji 被接受。
+  - 6 个 emoji、129 个 emoji 被拒，且报错不带密码。
+  - 13 个密码逐一核对：seed 接受的正好是 `PasswordSchema` 接受的。
+- 测试自身的核对：
+  - 在 `/tmp` 下建了临时 git worktree，共用依赖，不碰工作区，放入上面的参考实现。
+  - 正确写法：3 个新测试文件加 username、health、readiness，共 6 个文件、131 条通过。全部 API 测试（除 contracts）23 个文件、259 条通过。`tsc` 通过。`generate-openapi` 后 `docs/` 无差异。
+  - 15 种错误写法全部被发现（括号内为失败条数）：
+    - Pipe：不注册全局 Pipe（14）、`transform: false`（1）。
+    - 用户名：用 `refine` 调 `normalizeUsername`（9）、不 trim（8）、在 Schema 里转小写（6）、复制一份正则而不是导入（1）、共享正则带 `g` 标志（18）、`username.ts` 不导出正则（2）。
+    - 密码：trim 密码（3）、按 `.length` 计数（10）、上限写成 64（9）、登录用的密码规则与 `PasswordSchema` 不同（3）、seed 仍用 `.length`（4）。
+    - 对象：`strictObject`（3）、`looseObject`（3）。
+  - worktree 和临时脚本已删除，`node_modules/.bin` 中没有指向临时目录的脚本。
+- 实现前运行（工作区）：
+  - `auth-schemas` 65 条全部失败：64 条因 `schemas.ts` 不存在，1 条因 `USERNAME_PATTERN` 未导出（`expected undefined to be an instance of RegExp`）。
+  - `login-body-validation` 22 条全部因 `schemas.ts` 不存在而失败。
+  - `demo-users` 16 条中 4 条失败：65/128 个 emoji 被拒；6 个 emoji 被接受；一致性测试找不到 `schemas.ts`。原有 10 条和新增的 2 条（12 个 emoji 接受、129 个 emoji 拒绝，`.length` 恰好也得出同样结果）通过。
+  - 完整 API 测试 24 个文件、260 条：91 条失败，都来自上述原因；其余 169 条通过。
+  - `pnpm typecheck` 通过。三个测试文件通过 Prettier（`--write` 只调整了换行）。生成契约无差异。
+- 另外发现，留到 M1-T08：格式错误的 JSON 由 Express 的 body-parser 在 Pipe 之前拒绝，返回 400，消息是 `JSON.parse` 的原文。其中会带出请求体的前若干个字符，例如 `"password=f"...`、`..."assword":fixture-sec"...`。实测 4 种写法都没有带出完整密码，但已经能看到一部分。统一错误映射时要把这类消息换成固定文案。
+- 未修改业务代码。
 
 ## 实际执行记录
 
