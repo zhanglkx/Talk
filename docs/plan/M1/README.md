@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S22 已验收；当前步骤 M1-S23，登录请求体 Schema 与 Zod 接入，测试已就绪）。
+- 状态：**进行中**（M1-S23 已验收；当前步骤 M1-S24，登录接口，待用户确认设计）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -72,7 +72,8 @@
 | M1-S20 | express-session 的 Store 适配：把 express-session 的 get/set/destroy/touch 转成 `SessionsRepository` 调用。需新增依赖。 | done |
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
-| M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | 测试已就绪，等待用户实现 |
+| M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | done |
+| M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | 待用户确认设计 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -674,8 +675,74 @@ M1-S23 决定与测试准备记录（2026-10-20）：
   - `demo-users` 16 条中 4 条失败：65/128 个 emoji 被拒；6 个 emoji 被接受；一致性测试找不到 `schemas.ts`。原有 10 条和新增的 2 条（12 个 emoji 接受、129 个 emoji 拒绝，`.length` 恰好也得出同样结果）通过。
   - 完整 API 测试 24 个文件、260 条：91 条失败，都来自上述原因；其余 169 条通过。
   - `pnpm typecheck` 通过。三个测试文件通过 Prettier（`--write` 只调整了换行）。生成契约无差异。
-- 另外发现，留到 M1-T08：格式错误的 JSON 由 Express 的 body-parser 在 Pipe 之前拒绝，返回 400，消息是 `JSON.parse` 的原文。其中会带出请求体的前若干个字符，例如 `"password=f"...`、`..."assword":fixture-sec"...`。实测 4 种写法都没有带出完整密码，但已经能看到一部分。统一错误映射时要把这类消息换成固定文案。
+- 另外发现（同日已按用户要求修复，见下方「格式错误 JSON 的修复」）：格式错误的 JSON 由 Express 的 body-parser 在 Pipe 之前拒绝，返回 400，消息是 `JSON.parse` 的原文。其中会带出请求体的前若干个字符，例如 `"password=f"...`、`..."assword":fixture-sec"...`。实测 4 种写法都没有带出完整密码，但已经能看到一部分。
 - 未修改业务代码。
+
+M1-S23 格式错误 JSON 的修复（2026-10-20）：
+- 用户要求本步就修复，不再留到 M1-T08。按用户要求，这部分业务代码由助手编写；`schemas.ts` 等 S23 原有内容仍由用户实现。
+- 原因（看过源码）：
+  - body-parser `2.3.0` 解析失败时，抛出的 `SyntaxError` 带 `type: 'entity.parse.failed'`，`body` 属性里存着完整请求体。
+  - Nest 的 Express 适配器 `mapException` 把所有 `SyntaxError` 换成 `new BadRequestException(error.message)`，于是 `JSON.parse` 的原文进了响应。
+  - 实测请求体是一个裸词时，整段原样带出：`Unexpected token 'f', "fixture-secret-value" is not valid JSON`。如果这个裸词就是密码，密码会原样出现在响应里。
+- 修复：
+  - 新增 `apps/api/src/common/middleware/reject-malformed-json.ts`，是一个 Express 错误处理中间件，4 个参数。遇到 `entity.parse.failed` 时，交给下游一个固定文案的 `BadRequestException('Request body must be valid JSON')`。不挂 `cause`，以后的错误日志也碰不到原请求体。其他 body-parser 错误原样往下传，例如 413 请求体过大、415 编码不支持，它们的信息不含请求体。
+  - `configureApp` 先 `app.useBodyParser('json')`，紧接着 `app.use(rejectMalformedJson)`。Express 的错误处理只接得住排在它前面的中间件，而 Nest 默认的解析器在 `init` 时才注册，排在 `configureApp` 里所有 `app.use` 之后，所以必须自己先注册解析器。Nest 在 `init` 时检测到已有名为 `jsonParser` 的中间件，就不再注册默认的那一个；解析选项与默认相同，`limit` 仍为 100kb，空请求体仍当作 `{}`。
+  - `useBodyParser` 只有 Express 版的应用才有，所以 `configureApp`/`configureSession` 的参数类型从 `INestApplication` 改为 `NestExpressApplication`。`main.ts`、`generate-openapi.ts` 改成 `NestFactory.create<NestExpressApplication>(...)`；4 个测试文件（health、readiness、session-mount、login-body-validation）中 `createNestApplication` 加上同样的类型参数。只改了类型，运行行为不变。
+  - 副作用：JSON 解析现在排在会话中间件之前。格式错误的请求即使带着有效的会话 Cookie，也会直接返回 400，不再先查会话、不连库。
+- 测试 `apps/api/test/json-body-parsing.spec.ts`，13 条，用真实 `AppModule` 和 `configureApp`，数据库不可用：
+  - 7 种格式错误的 JSON 都返回完全相同的 `{ statusCode: 400, error: 'Bad Request', message: 'Request body must be valid JSON' }`：表单格式、裸词、未加引号的值、尾逗号、单引号、截断、长前缀后的错误。都不调用 Controller、不连库，响应和日志里不出现请求体的任何片段。
+  - 合法 JSON 照常解析；空请求体仍当作 `{}`。
+  - 110KB 的请求体仍为 413 `request entity too large`；不支持的 charset 仍为 415。
+  - Express 中只有一个 `jsonParser`。
+  - 按 `main.ts` 的顺序装上会话中间件后，带有效签名 Cookie 的格式错误请求返回 400，且不查会话。
+- 修复前运行：8 条失败，其中 7 条响应里是 `JSON.parse` 原文，会话路径那条返回 500；其余 5 条通过，作为回归保护。修复后 13 条通过。
+- 测试的区分力（临时 worktree，已删除）：去掉错误中间件、把它放到解析器之前、不自己注册解析器、保留原消息，这 4 种写法各有 8 条失败；把所有 body-parser 错误都换成固定 400 时，有 2 条（413/415）失败。
+- 其他验证：
+  - `pnpm typecheck` 通过。
+  - 不可达数据库地址下 `pnpm contracts` 退出码 0，生成契约无差异。
+  - `test:db` 11 个文件、77 条通过，包括启动 `dist/main.js` 的 `main-session`；运行后 `ledger_it` 上连接数为 0。
+  - 构建产物端到端：先确认 `127.0.0.1:1` 返回 `ECONNREFUSED`，再用它作数据库地址、用虚构的会话密钥启动 `dist/main.js`。两种格式错误的请求都得到上述固定 400，合法 JSON 发到不存在的路径为 404，health 为 200，进程输出中没有请求体内容。
+  - 改动的文件都通过 Prettier。
+- 完整 API 测试 25 个文件、273 条：183 条通过；90 条失败，都来自下面 S23 实现的 3 处问题。
+
+M1-S23 实现进度（2026-10-20）：用户已提交 `username.ts` 导出正则（`4234b12`）、`schemas.ts`（`9ab4c1b`）、全局 Pipe（`6f03bc5`）。与测试对照，还差 3 处：
+- `schemas.ts` 的导出名写成了 `PasswordScheme`、`LoginBodyScheme`，应为 `PasswordSchema`、`LoginBodySchema`。`auth-schemas`、`login-body-validation` 的 86 条都因找不到导出而失败（`expected undefined to be 'zod'`）。
+- `PasswordScheme` 的下限写成了 `min(8)`，PRD 定的是 12。改了名字之后，长度为 8～11 的用例会失败。
+- `demo-users.ts` 的 `readDemoAccounts` 仍按 `.length` 检查，没有改用 `PasswordSchema`，`demo-users` 有 4 条失败。
+
+M1-S23 验收证据（2026-10-20）：
+- 实现：用户自己改正了 `schemas.ts` 的两个导出名和密码下限（`min(12)`）。`readDemoAccounts` 第一版调用了 `PasswordSchema.safeParse(...)`，但没有使用返回结果，返回值里还引用了已经删除的 `password` 变量。按用户要求，助手改为：保存 `safeParse` 的结果，失败时抛出原来的错误信息，成功时返回 `result.data`，并补了注释。格式错误 JSON 的修复见上一节，由助手编写。
+- `pnpm --filter @ledger/api exec vitest run test/demo-users.spec.ts test/auth-schemas.spec.ts test/login-body-validation.spec.ts test/json-body-parsing.spec.ts test/username.spec.ts`：5 个文件、141 条通过。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：11 个文件、77 条通过，其中 `seed-demo-users.db.spec.ts` 4 条（seed 已改用 `PasswordSchema`）。运行前后 `ledger_it` 上连接数均为 0。
+- `pnpm check`：退出码 0；API 25 个文件、273 条，Web 1 个文件、2 条，build 完成。生成契约无 Git 差异：本步没有真实接口使用 `LoginBodySchema`。
+- 改动的文件通过 Prettier。
+- 没有验证到：
+  - `LoginBodySchema` 还没有被真实接口使用，所以 `docs/openapi.json` 里还看不到它。
+  - 400 的响应体仍是 Nest 默认形状，统一成 `error.code/...` 留到 M1-T08。
+  - 用户暂未采纳的写法建议（不影响验收）：`readDemoAccounts` 由 `export function` 改成了箭头函数加文件末尾的 `export { readDemoAccounts }`；`schemas.ts` 用 `import z from 'zod'` 默认导入，Zod 4.6.7 同时提供默认导出和命名导出 `z`，两者等价。
+
+### M1-S24 详情
+
+- 来源：PRD M1-R03「正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案」、接口表「login：200 返回最小 user，设置 HttpOnly Cookie」；技术方案 §5「登录通过密码校验后 regenerate、设置 userId/随机 CSRF token、显式 save 成功才 200。失败不可发出看似有效登录 Cookie」、§6「me/login 使用 Cache-Control:no-store」；执行计划 M1-T06「正确与错误登录、存储故障、匿名会话不保存」。这是 M1-T06 的最后一小步，把 S22 的 `verifyCredentials`、S23 的 `LoginBodySchema` 和 S21 的会话中间件接成真正的接口。
+- 计划：新增 `POST /api/v1/auth/login`。本步不做 Origin 检查和限流：PRD 要求「先校验 Origin」，但它与 CSRF、限流同属 M1-T08，M1-R03 在那之前只算部分完成，不标通过。也不做 `me`、`logout`。
+- 建议设计（待用户确认）：
+  - `apps/api/src/modules/auth/auth.controller.ts`：`@Controller('auth')`，`@Post('login')`、`@HttpCode(200)`、`@Header('Cache-Control', 'no-store')`。参数为 `@Body({ schema: LoginBodySchema })` 和 Express 的 `@Req()`。在 `AuthModule` 的 `controllers` 中注册。
+  - 顺序：先 `verifyCredentials`。失败时抛 `UnauthorizedException`，文案固定（例如 `Invalid username or password`），并且不碰会话，所以不会下发 Cookie。成功后才 `regenerate`。
+  - `regenerate`：express-session 先删除旧会话 ID 对应的行，再生成新 ID。这就是「轮换 Session ID」：如果攻击者事先让浏览器带上一个他知道的会话 ID（会话固定攻击），登录后这个 ID 也就作废了。
+  - 写入 `userId` 和随机的 `csrfToken`（`randomBytes(32)`，base64url），然后显式 `save`，等它成功后才返回 200 `{ user: { id, username } }`。`save` 会经 S20 的 Store 调用 `create` 写库。
+  - `regenerate`/`save` 是回调风格，要包成 Promise 再 `await`。
+  - 存储失败（数据库断开）时不能下发 Cookie。源码核对结果：express-session 在响应头发出时，只要 `req.session` 存在、而且被改过，就会写 `Set-Cookie`，哪怕是错误响应。所以 `save` 失败时要先把 `req.session` 置为 `null` 再抛错，否则浏览器会拿到一个库里不存在的会话 Cookie。错误暂时是 5xx，映射成 503 留到 M1-T08。
+  - OpenAPI：响应用 Zod Schema 描述（`@nestjs/swagger@12.0.2` 的 `@ApiOkResponse` 支持 `standardSchema`，实测后确定写法），同时声明 400、401。本步 `pnpm contracts` 会生成新路径，`docs/openapi.json` 和 Web 类型按预期变化，差异只应包含 login。
+- 测试（确认后助手先写）：
+  - 离线 HTTP：用真实的 `AppModule`、`configureApp`、`configureSession`，`AuthService` 和 `SessionsRepository` 换成替身。覆盖：
+    - 成功：200，响应恰好 `{ user: { id, username } }`；`Set-Cookie` 为 `ledger.sid`，带 `HttpOnly`、`SameSite=Lax`、`Path=/`；`Cache-Control: no-store`；库里写入的 `userId` 来自 `verifyCredentials`，与请求体无关。
+    - 失败：用户名不存在、密码错误两种情况的 401 响应体逐字相同，没有 `Set-Cookie`，不写库；400 时不调用 `verifyCredentials`。
+    - 存储失败：没有 `Set-Cookie`，响应里没有内部错误信息。
+  - `ledger_it` 真实库：seed 两个虚构账号后启动真实应用。
+    - 登录成功后 sessions 表恰好多一行，主键是 Cookie 里会话 ID 的摘要，`user_id` 正确，`csrf_token` 非空。
+    - 带着 A 的 Cookie 再以 B 登录：拿到不同的会话 ID，A 那一行被删除，库里只剩 B。
+    - 错误登录不增加行。
+- 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0；生成契约的差异只包含 login 接口。
 
 ## 实际执行记录
 
