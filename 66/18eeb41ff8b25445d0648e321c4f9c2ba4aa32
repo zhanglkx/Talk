@@ -1,0 +1,19 @@
+apps/api/test/contracts.spec.ts
+  s_e54dc915e658bd::t_4e219c0927de5b 77-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "6618eeb41ff8b25445d0648e321c4f9c2ba4aa32",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
