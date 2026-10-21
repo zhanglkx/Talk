@@ -1,0 +1,21 @@
+apps/web/src/generated/api-types.ts
+  s_e54dc915e658bd::t_decc7629c49e98 39-54,142-185
+docs/openapi.json
+  s_e54dc915e658bd::t_decc7629c49e98 61-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "8cb314cc027664ecfc8c17c25589771669c4ffcd",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
