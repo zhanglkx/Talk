@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S23 已验收；当前步骤 M1-S24，登录接口，待用户确认设计）。
+- 状态：**进行中**（M1-S23 已验收；当前步骤 M1-S24，登录接口，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -73,7 +73,7 @@
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
 | M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | done |
-| M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | 待用户确认设计 |
+| M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -743,6 +743,77 @@ M1-S23 验收证据（2026-10-20）：
     - 带着 A 的 Cookie 再以 B 登录：拿到不同的会话 ID，A 那一行被删除，库里只剩 B。
     - 错误登录不增加行。
 - 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0；生成契约的差异只包含 login 接口。
+
+M1-S24 实测与测试准备记录（2026-10-20）：
+- 用户回复「开始 S24」，同意上面的设计。
+- 实测方式：在 `apps/api/test/` 下临时放一个 spec，用真实 `AppModule`、`configureApp`、`configureSession`，挂一个测试用 Controller，`SessionsRepository` 换成会记录调用的内存替身。另用临时 `.ts` 文件核对类型写法。两个文件都已删除。
+- 实测发现一，设计需要补一处：按设计写的 `regenerate → 赋值 → 显式 save`，Store 的 `create` 会被调用两次，同一个会话 ID。
+  - 原因（核对 express-session 1.19.0 源码）：`regenerate` 生成的新会话对象，没有经过 express-session 内部记录「已保存」的那层包装。显式 `save` 之后它仍认为会话未保存，响应结束时会再 `set` 一次。
+  - S20 的 Store 对没有 `loadedFromStore` 标记的会话一律 `INSERT`，在真实库上第二次就是主键冲突 23505。这个错误发生在响应发出之后，客户端照样拿到 200，只在服务端留下一条错误日志。
+  - express-session 对 Store 的约定是 `set` 可以重复调用（插入或更新）。所以改 Store：`create` 成功后给会话对象打上 `loadedFromStore = true`，第二次 `set` 就按「已有会话」续期（`findActive` + `update`）。如果两次 `set` 之间会话被删除（例如被退出），第二次什么都不做，不会把它重新建出来。这一行属于业务代码，由用户写在 `session-store.ts` 的 `write` 里。
+  - 不采用「先查一下有没有，再决定 create 还是 update」：这样两次 `set` 之间被删除的会话会被重新建出来，违反 M1-R05。
+- 实测发现二：只靠响应结束时的自动保存、不显式 `save`，保存失败时客户端仍拿到 200。所以必须显式 `save`，等它成功后再返回。
+- 实测发现三：保存失败，或者 `regenerate` 删除旧会话失败时，如果不去掉 `req.session`，返回的 500 里会带 `Set-Cookie`；去掉之后不带。
+  - `regenerate` 删除失败时，express-session 照样生成了新会话。所以 `regenerate` 也要放进同一个 `try` 里。
+  - 类型上，`req.session = null` 报 `TS2322`，`delete req.session` 报 `TS2790`，因为类型包把它声明为必有字段。可以编译的写法是 `Reflect.deleteProperty(request, 'session')`。
+- 实测发现四：`@Header('Cache-Control', 'no-store')` 对 handler 抛出的 401 也生效。401 的响应体为 `{ message, error: 'Unauthorized', statusCode: 401 }`。
+- 实测发现五：`@ApiOkResponse({ description, standardSchema: <Zod Schema> })` 能生成 200 的响应结构，Zod 对象会带上 `additionalProperties: false`，`z.uuid()` 会带上 `format: uuid`。
+- 实测发现六：`import type { Request } from 'express'` 报 `TS2307`，因为 `express` 不是 `apps/api` 的直接依赖。改用类型包提供的全局 `Express.Request`，它已经带有 `session`、`sessionID` 的类型。
+- 实测发现七：带着旧会话 Cookie 登录时，先删除旧 ID 的行（`delete`），再写入新 ID（`create`），库里只剩新的一行。
+- 待用户实现（用户手写）：
+  - `apps/api/src/modules/auth/session-store.ts`：`write` 中 `create` 成功后加一行 `sess.loadedFromStore = true`。
+  - `apps/api/src/modules/auth/schemas.ts`：导出 `LoginResponseSchema = z.object({ user: z.object({ id: z.uuid(), username: z.string() }) })`。
+  - 新建 `apps/api/src/modules/auth/auth.controller.ts`，命名导出 `AuthController`：
+    - 类上 `@Controller('auth')`，构造参数注入 `AuthService`。
+    - `login` 方法：`@Post('login')`、`@HttpCode(200)`、`@Header('Cache-Control', 'no-store')`、`@ApiOkResponse({ description, standardSchema: LoginResponseSchema })`、`@ApiBadRequestResponse(...)`、`@ApiUnauthorizedResponse(...)`。
+    - 参数：`@Body({ schema: LoginBodySchema }) body`、`@Req() request: Express.Request`。
+    - 顺序：先 `verifyCredentials(body.username, body.password)`，返回 `null` 时抛 `UnauthorizedException('Invalid username or password')`。然后在同一个 `try` 里依次执行 `regenerate`、写 `request.session.userId` 和 `request.session.csrfToken`（`randomBytes(32).toString('base64url')`）、`save`；`catch` 里先 `Reflect.deleteProperty(request, 'session')` 再重新抛出。最后返回 `{ user: { id, username } }`，不返回 `csrfToken`。
+    - `regenerate`/`save` 是回调风格，各包一层 Promise。写 `userId` 时要用 `regenerate` 之后的 `request.session`：它是一个新对象，提前存下来的旧引用写进去不会被保存。
+  - `auth.module.ts`：`controllers: [AuthController]`。
+- 测试：
+  - `apps/api/test/session-store.spec.ts` 新增 2 条，共 24 条：
+    - 同一个新会话对象被 `set` 两次，只 `create` 一次，第二次按续期处理，绝对截止不变。
+    - 两次 `set` 之间被删除时，第二次不会重新建出来。
+  - 新增 `apps/api/test/auth-login.spec.ts`，13 条。用真实 `AppModule`、`configureApp`、`configureSession`，会话中间件和 Store 都是真的；`AuthService`、`SessionsRepository` 换成内存替身，后者与真实库一样不接受同一 ID 再次 `create`。
+    - 成功：响应恰好是 `{ user }`；`Cache-Control: no-store`；只有一个签名正确的 `ledger.sid`，属性恰好是 `HttpOnly`、`Path=/`、`SameSite=Lax`，没有 Secure、Expires、Max-Age、Domain。
+    - 请求体去掉首尾空白后的用户名和原样的密码传给 `verifyCredentials`。
+    - 只存一行，行的键就是 Cookie 里的会话 ID；`userId` 来自校验结果，请求体里混进来的 `userId` 无效；`csrfToken` 为 43 个字符的 base64url，且不出现在响应里；期限为 7 天和 12 小时；响应结束后没有错误日志。
+    - 每次登录都换新的会话 ID 和新的 CSRF token。
+    - 带着 alice 的 Cookie 以 bob 登录：alice 的行被删除，只剩 bob 的。
+    - 用户不存在、密码错误：401 响应逐字相同，带 `no-store`，没有 Cookie，不碰会话。
+    - 3 种不合格请求体返回 400，不校验凭据。
+    - 3 种依赖失败都没有 Cookie、响应里不带内部错误信息：写入新会话失败、删除旧会话失败、校验凭据时数据库出错。
+    - OpenAPI：`operationId` 为 `AuthController_login`，有请求体，响应恰好有 200/400/401；200 的结构只有 `user.id`（uuid）和 `user.username`。
+  - `apps/api/test/contracts.spec.ts` 新增 3 个断言：真实 `pnpm contracts` 生成的 OpenAPI 和 Web 类型中有 login 接口和 `AuthController_login`。
+  - 新增 `apps/api/test/integration/support/api-process.ts`（`startApi`/`stopApi`，启动和关闭 `dist/main.js`），以及 `apps/api/test/integration/auth-login.db.spec.ts`，5 条，在 `ledger_it` 写入两个虚构用户（真实 Argon2id 哈希）后启动真实应用：
+    - alice 登录（用户名带大写和空格）：200，sessions 表恰好一行，主键是 Cookie 里会话 ID 的摘要，明文 ID 不在库里，`data` 只有 43 个字符的 `csrfToken`，期限正确，进程输出中没有错误和 `duplicate key`。
+    - 带着 alice 的 Cookie 以 bob 登录：拿到不同的 ID，alice 的行被删除，库里只剩 bob 的。
+    - 密码错误、用户不存在：401 响应体相同，没有 Cookie，带 `no-store`，库不变。
+    - 不合格请求体：400，库不变。
+    - 进程输出中没有错误、两个密码、会话密钥和连接串；收到 SIGTERM 后 `ledger_it` 上没有它留下的连接。
+- 测试自身的核对：
+  - 在 `/tmp` 下建临时 git worktree 放入上面的参考实现。离线 `auth-login` 13 条、`session-store` 24 条通过，`tsc` 通过。手动执行构建、`generate-openapi`、`openapi-typescript` 后，`docs/openapi.json` 增加 76 行、Web 类型增加 63 行，只有 `/api/v1/auth/login`。真实库 `auth-login` 5 条、`main-session` 5 条、`session-store` 2 条通过。
+  - 16 种错误写法全部被发现（括号内为失败条数）：
+    - Store：`create` 后不打标记（离线 4、真实库 2）；改成「库里已有就跳过」（2）。
+    - 会话：不 `regenerate`（1）；不显式 `save`（1）；失败时不去掉 `req.session`（2）；`regenerate` 放在 `try` 外面（1）；先 `regenerate` 再校验凭据（3）；写进 `regenerate` 之前存下的旧会话对象（4）。
+    - 响应：不设 `no-store`（2）；401 用 Nest 默认文案（1）；响应里带出 `csrfToken`（3）。
+    - token：只有 16 个字节（1）；写死一个固定值（1）。
+    - Schema 与契约：请求体不用 Schema（5）；200 不描述响应结构（1）；不声明 400（1）。
+  - 核对中的环境问题：
+    - worktree 里的 `node_modules` 是软链。worktree 中的 contracts 测试和完整 `test:db` 后半段，因为 pnpm 拒绝在这种目录下执行脚本而失败（`ERR_PNPM_UNSAFE_TASK_RUN_STATE_PATH`、`workspace hoist directory is not a real directory`），与实现无关。所以改为手动执行生成步骤，真实库测试只跑与本步相关的 3 个文件。
+    - worktree 里的 pnpm 经软链改写了主工作区 `node_modules/.bin` 下 15 个命令脚本的 `NODE_PATH` 和注释，让它们指向临时目录。实际执行的路径是相对路径，所以这些命令仍然可用。
+    - 修复：删除 worktree，移走 `node_modules/.pnpm-workspace-state-v1.json`，执行 `pnpm install --frozen-lockfile --offline`（只用本地 store，没有下载）。之后指向临时目录的脚本为 0 个，`pnpm-lock.yaml` 的 SHA-256 前后相同，`prettier` 正常。
+  - 临时文件和脚本都已删除。
+- 实现前运行（工作区）：
+  - `pnpm --filter @ledger/api test`：26 个文件、288 条，16 条失败，都来自待实现的部分：
+    - `auth-login` 13 条，因 `auth.controller.ts` 不存在。
+    - `session-store` 新增的 2 条：第二次 `set` 报 `duplicate session id`；`create` 被调用了 2 次。
+    - `contracts` 1 条，生成的 OpenAPI 中没有 login 路径。
+  - 其余 272 条通过；生成契约无 Git 差异。
+  - `test:db`：12 个文件、82 条。新文件 `auth-login.db.spec.ts` 中 4 条失败：登录、错误凭据、400 三种请求都得到 404，因为还没有这个接口；轮换那条因前一条没有登录成功而失败。最后一条（没有错误日志、释放连接）在当前代码下就成立，作为回归保护。其余 78 条通过。运行前后 `ledger_it` 上连接数均为 0。
+  - 运行 `test:db` 时发现一个 21:27 起就在运行的 `dist/main.js`，监听 39123 端口，环境里是不可达的数据库地址。它是 S23 构建产物端到端验证时启动的，当时 `kill` 后没有确认退出，属于助手遗留。已用 SIGTERM 关闭，确认退出。它连的是不可达地址，没有连接过任何真实库。
+  - `pnpm typecheck` 通过；5 个测试文件通过 Prettier（`--write` 只调整了一处换行）。
+- 未修改业务代码。
 
 ## 实际执行记录
 
