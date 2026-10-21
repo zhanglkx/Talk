@@ -1,0 +1,21 @@
+apps/api/test/integration/support/api-process.ts
+  s_e54dc915e658bd::t_3f6bd1c21eedd4 1-64
+apps/api/test/integration/auth-login.db.spec.ts
+  s_e54dc915e658bd::t_3f6bd1c21eedd4 1-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "744ad0c4188b02812b8d8b51d5f71839c5235d85",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
