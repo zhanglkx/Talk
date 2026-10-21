@@ -74,5 +74,9 @@ describe('offline contracts generation', () => {
     expect(apiTypes).toContain('"/internal/ready"')
     expect(apiTypes).toContain('HealthController_check')
     expect(apiTypes).toContain('InternalController_ready')
+    // M1-S24：登录接口进入契约和 Web 类型。
+    expect(document.paths['/api/v1/auth/login'].post.operationId).toBe('AuthController_login')
+    expect(apiTypes).toContain('"/api/v1/auth/login"')
+    expect(apiTypes).toContain('AuthController_login')
   }, 60_000)
 })
