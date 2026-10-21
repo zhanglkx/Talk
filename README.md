@@ -9,7 +9,7 @@
 - `GET /api/v1/health` 存活检查（不查库），`GET /internal/ready` 就绪检查（`SELECT 1`，失败返回 503）
 - OpenAPI 产物 `docs/openapi.json`，以及由它生成的 Web 类型
 
-已有 users、sessions 两张表的实体、migration 和给 TypeORM CLI 用的连接入口，以及用户数据访问层、Argon2id 密码哈希、建立两个虚构演示账号的 `seed:demo`，和只挂在 `/api/v1/auth` 下、以 PostgreSQL 存储会话的 express-session。migration 和 seed 已在专用测试库 `ledger_it` 上由 `test:db` 真实执行并验证；开发库还没有执行过，也还没有给开发库用的迁移脚本。登录接口、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段进度与验收见 [学习计划](docs/plan/README.md)。
+已有 users、sessions 两张表的实体、migration 和给 TypeORM CLI 用的连接入口，以及用户数据访问层、Argon2id 密码哈希、建立两个虚构演示账号的 `seed:demo`，和只挂在 `/api/v1/auth` 下、以 PostgreSQL 存储会话的 express-session。migration 和 seed 已在专用测试库 `ledger_it` 上由 `test:db` 真实执行并验证；开发库还没有执行过，也还没有给开发库用的迁移脚本。已有登录接口 `POST /api/v1/auth/login`（校验凭据、轮换 Session ID、保存会话后返回最小 user；还没有 Origin 检查和限流）。me、退出、分类、流水、月报、CI、部署和 AI 问答尚未实现。阶段进度与验收见 [学习计划](docs/plan/README.md)。
 
 ## 技术栈
 
