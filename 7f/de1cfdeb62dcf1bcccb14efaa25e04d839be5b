@@ -1,0 +1,19 @@
+apps/api/src/modules/auth/auth.controller.ts
+  s_e54dc915e658bd::t_9b7d4135aff432 1-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "7fde1cfdeb62dcf1bcccb14efaa25e04d839be5b",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
