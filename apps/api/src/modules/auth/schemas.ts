@@ -7,3 +7,10 @@ export const LoginBodySchema = z.object({
   username: z.string().trim().regex(USERNAME_PATTERN),
   password: PasswordSchema,
 })
+
+export const LoginResponseSchema = z.object({
+  user: z.object({
+    id: z.uuid(),
+    username: z.string(),
+  }),
+})
