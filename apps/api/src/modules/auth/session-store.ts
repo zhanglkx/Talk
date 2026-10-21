@@ -8,6 +8,7 @@ import type { SessionsRepository } from '@/modules/auth/sessions.repository.js'
 declare module 'express-session' {
   interface SessionData {
     userId?: string
+    // csrfToken: 用于防止 CSRF 攻击，每次登录生成。
     csrfToken?: string
     // 只有从数据库读出的会话才有；用来区分「刚登录的新会话」和「读出后被删掉的会话」。
     loadedFromStore?: true
@@ -89,6 +90,9 @@ export class PostgresSessionStore extends session.Store {
         data: { csrfToken },
         window: startSessionWindow(now),
       })
+
+      sess.loadedFromStore = true
+
       return
     }
     // 有标记：以数据库里的期限为准续期。读不到说明期间已退出或过期，不重新创建。
