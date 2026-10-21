@@ -240,6 +240,56 @@ describe('PostgresSessionStore.set', () => {
     expect(sessions.update).not.toHaveBeenCalled()
     expect(sessions.rows.get(sid)?.userId).toBe(userId)
   })
+
+  // 登录时 regenerate 之后先显式 save，响应结束时 express-session 会把同一个会话对象再 set 一次（M1-S24 实测）。
+  // 假仓储与真实库一样，同一 ID 再 create 会报错；第二次 set 必须成功，而且只建一行。
+  it('stores a new session once when express-session sets the same object twice', async () => {
+    const sessions = createFakeSessions()
+    let now = loginAt
+    const store = await createStore(sessions, () => now)
+    const fresh: StoredSession = {
+      cookie: { ...cookieOptions },
+      userId,
+      csrfToken: 'fixture-csrf-token',
+    }
+
+    const [first] = await invoke((callback) => store.set(sid, fresh, callback))
+    now = at(1000)
+    const [second] = await invoke((callback) => store.set(sid, fresh, callback))
+
+    expect(first).toBeFalsy()
+    expect(second).toBeFalsy()
+    expect(sessions.create).toHaveBeenCalledOnce()
+    expect(sessions.rows.size).toBe(1)
+    // 第二次按已有会话续期：绝对截止仍从第一次保存算起。
+    expect(sessions.rows.get(sid)).toStrictEqual({
+      userId,
+      data: { csrfToken: 'fixture-csrf-token' },
+      window: {
+        lastSeenAt: at(1000),
+        idleExpiresAt: at(1000 + 12 * HOUR),
+        absoluteExpiresAt: at(7 * DAY),
+      },
+    })
+  })
+
+  it('does not bring back a new session that was deleted between the two sets', async () => {
+    const sessions = createFakeSessions()
+    const store = await createStore(sessions, () => loginAt)
+    const fresh: StoredSession = {
+      cookie: { ...cookieOptions },
+      userId,
+      csrfToken: 'fixture-csrf-token',
+    }
+
+    await invoke((callback) => store.set(sid, fresh, callback))
+    await invoke((callback) => store.destroy(sid, callback))
+    const [err] = await invoke((callback) => store.set(sid, fresh, callback))
+
+    expect(err).toBeFalsy()
+    expect(sessions.create).toHaveBeenCalledOnce()
+    expect(sessions.rows.size).toBe(0)
+  })
 })
 
 describe('PostgresSessionStore.touch', () => {
