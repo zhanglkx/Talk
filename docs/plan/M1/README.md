@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S23 已验收；当前步骤 M1-S24，登录接口，测试已就绪）。
+- 状态：**进行中**（M1-S24 已验收；当前步骤 M1-S25，me 与 AuthGuard，待用户确认设计）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -35,7 +35,7 @@
 |---|---|---|
 | M1-R01 | 空库显式执行 migration 后具备 users/sessions；再次执行不重复建表；应用启动不自动建表或迁移。 | 通过（2026-10-15，M1-S11）：`apps/api/test/integration/migrations-run.db.spec.ts`、`users-migration.db.spec.ts`、`sessions-migration.db.spec.ts`；启动不连库、不迁移见 `apps/api/test/database-startup.spec.ts`（M1-S05）。down 未在真实库演练。 |
 | M1-R02 | seed 建立两个虚构账号；只保存密码哈希，不把密码写入代码、文档或日志；再次执行不悄悄重置已有密码。 | 通过（2026-10-15，M1-S17，限 `ledger_it`）：`apps/api/test/integration/seed-demo-users.db.spec.ts`、`apps/api/test/demo-users.spec.ts`、`apps/api/test/integration/users-repository-write.db.spec.ts`。开发库上的演示留到 M1-T10。 |
-| M1-R03 | 正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性。 | 未验证 |
+| M1-R03 | 正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性。 | 部分（2026-10-21，M1-S24）：条件本身已有证据，见 `apps/api/test/auth-login.spec.ts`、`apps/api/test/integration/auth-login.db.spec.ts`。按 S24 计划，等 M1-T08 加上登录前的 Origin 检查、统一错误形状后复核，再标通过。 |
 | M1-R04 | me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户。 | 未验证 |
 | M1-R05 | 退出销毁服务端会话并清同名/同路径 Cookie；重放旧 Cookie 不恢复登录。 | 未验证 |
 | M1-R06 | 登录检查可信 Origin；已登录写请求检查 Origin 和 X-CSRF-Token。缺失或错误返回 403。 | 未验证 |
@@ -73,7 +73,8 @@
 | M1-S21 | 把 express-session 挂到应用上（会话密钥配置、Cookie 属性、只作用于需要会话的路径），不含登录接口。 | done |
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
 | M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | done |
-| M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | 测试已就绪，等待用户实现 |
+| M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | done |
+| M1-S25 | `GET /api/v1/auth/me` 与 AuthGuard：身份只来自会话，未登录、会话过期或用户不存在均 401；返回 user 和 csrfToken。不含退出，退出留到下一步。 | 待用户确认设计 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -814,6 +815,58 @@ M1-S24 实测与测试准备记录（2026-10-20）：
   - 运行 `test:db` 时发现一个 21:27 起就在运行的 `dist/main.js`，监听 39123 端口，环境里是不可达的数据库地址。它是 S23 构建产物端到端验证时启动的，当时 `kill` 后没有确认退出，属于助手遗留。已用 SIGTERM 关闭，确认退出。它连的是不可达地址，没有连接过任何真实库。
   - `pnpm typecheck` 通过；5 个测试文件通过 Prettier（`--write` 只调整了一处换行）。
 - 未修改业务代码。
+
+M1-S24 验收证据（2026-10-21）：
+- 实现：
+  - 用户手写：`session-store.ts` 的 `write` 在 `create` 成功后加上 `sess.loadedFromStore = true`，并给 `SessionData.csrfToken` 加了注释；`schemas.ts` 导出 `LoginResponseSchema`。
+  - 按用户要求，助手编写：`apps/api/src/modules/auth/auth.controller.ts` 的 `AuthController.login`，以及把回调包成 Promise 的 `regenerateSession`、`saveSession`；`auth.module.ts` 加 `controllers: [AuthController]` 并更新注释。写法与测试准备时的参考实现一致。
+- `pnpm --filter @ledger/api exec vitest run test/auth-login.spec.ts test/session-store.spec.ts`：2 个文件、37 条通过。
+- `pnpm typecheck` 通过；`modules/auth` 通过 Prettier。
+- `pnpm check`：退出码 0；API 26 个文件、288 条，Web 1 个文件、2 条，build 完成。
+- 生成契约：`docs/openapi.json` 增加 76 行、`apps/web/src/generated/api-types.ts` 增加 63 行，只有新增、没有删改，内容只有 `/api/v1/auth/login` 和 `AuthController_login`，行数与测试准备时的参考实现相同。Swagger 按 Controller 名自动加了 `tags: ["Auth"]`。这两份文件要随本步一起提交。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：12 个文件、82 条通过，其中 `auth-login.db.spec.ts` 5 条。运行前后 `ledger_it` 上连接数均为 0，没有残留的 `dist/main.js` 进程。
+- 没有验证到：
+  - 登录前的 Origin 检查和限流（M1-T08），所以 M1-R03 只标「部分」。
+  - 依赖失败时返回的是 5xx，映射成 503 留到 M1-T08；400/401 的响应体仍是 Nest 默认形状。
+  - `pnpm dev` 没有启动过；Web 还没有调用登录接口（M1-T09）。
+
+### M1-S25 详情
+
+- 来源：
+  - PRD M1-R04「me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户」。
+  - PRD 接口表「GET /api/v1/auth/me：Cookie；200 返回 user{id,username} 和 csrfToken；响应不缓存；401 未登录/过期；503 数据库」。
+  - 技术方案「AuthGuard 只从有效 session 取得 userId。me 查询该 ID，用户不存在视为无效会话；不接受 body/query 的 userId 或客户端 Header 作身份」「GET me 不要求 CSRF」「me/login 使用 Cache-Control:no-store」。
+  - M1-T07（me/logout 与 AuthGuard，1.5h）拆成两步：本步做 me 与 AuthGuard，退出留到下一步。
+- 计划：新增 `GET /api/v1/auth/me` 和 AuthGuard。Guard 是 Nest 在调用 Controller 方法之前执行的一道检查，要么放行，要么抛错。把「这个请求登录了没有」放进 Guard，以后每个需要身份的接口都复用这一份判断，不用在每个方法里各写一遍。
+- 建议设计（待用户确认）：
+  - `apps/api/src/common/guards/auth.guard.ts`，`AuthGuard implements CanActivate`：
+    - 只看 `request.session?.userId` 是不是字符串，不查库。会话过期由 Store 的 `get` 判断：过期返回 `null`，express-session 换成一个没有 `userId` 的空会话，Guard 自然拒绝，不必再算一遍期限。
+    - 拒绝时自己抛 `UnauthorizedException`，文案固定（例如 `Authentication required`）。如果只是返回 `false`，Nest 回的是 403 `Forbidden resource`（已核对 `@nestjs/core@12.1.2` 源码），与 PRD 的 401 不符。
+  - Guard 的挂法，待用户二选一：
+    - A（建议）：全局注册（`APP_GUARD`），默认所有接口都要登录；health、ready、login 用 `@Public()` 标记放行，Guard 用 `Reflector` 读这个标记。理由与 S23 全局注册 Pipe 相同：M2 起新增的业务接口如果忘了处理，得到的是 401，立刻能发现；而不是对匿名请求开放。不在 `SESSION_PATHS` 下的接口没有 `req.session`，同样得到 401，也会提醒把路径加进去。代价：health、internal 两个 Controller 各加一行 `@Public()`；现有测试里只在测试中存在的 Controller（`login-body-validation`、`json-body-parsing` 等）也要加，这部分由助手改。
+    - B：只在需要身份的方法上写 `@UseGuards(AuthGuard)`。改动最少，但漏写一次就多一个不需要登录的接口，类型检查和现有测试都发现不了。
+  - me：
+    - `AuthController` 新增 `@Get('me')`、`@Header('Cache-Control', 'no-store')`。从 `request.session.userId` 取 ID，调用 S14 的 `findPublicById`，返回 `{ user: { id, username }, csrfToken }`。
+    - query、Header、body 里的 userId 一律不读。
+    - 用户不存在（会话还在、用户已删除）视为无效会话，返回 401。sessions 表的外键带 `ON DELETE CASCADE`，删用户时会话一起删，这里只防两者之间的极短窗口。
+  - 为什么 me 要返回 csrfToken：Cookie 是 HttpOnly，页面脚本读不到会话内容。以后退出等写请求要在 `X-CSRF-Token` 头里带上这个值（M1-T08 校验），页面只能从 me 拿到它，放在内存里。
+  - 续期：me 不修改会话，express-session 在响应结束时调用 Store 的 `touch`，闲置截止往后推到 12 小时后（不超过绝对截止）。所以页面每次打开调用 me，就算一次活动。
+  - Schema：`schemas.ts` 抽出 `PublicUserSchema`（login 和 me 共用），新增 `MeResponseSchema`；OpenAPI 声明 200、401。
+  - 数据库离线：会话中间件读会话时就会失败，返回 5xx；映射成 503 留到 M1-T08。
+- 测试（确认后助手先写）：
+  - 离线：Guard 单元测试；HTTP 测试用真实 `AppModule`、`configureApp`、`configureSession`，仓储换成内存替身。覆盖：
+    - 有效会话：200，响应恰好 `{ user, csrfToken }`，带 `no-store`。
+    - 无 Cookie、签名错误、会话不存在、会话过期、用户不存在：都是 401，没有 `Set-Cookie`。
+    - `?userId=`、`X-User-Id` 头不改变返回的用户。
+    - 选 A 时：health、ready、login 不需要登录。
+    - OpenAPI：200 的结构和 401。
+  - `ledger_it` 真实库：
+    - 登录后用同一个 Cookie 调 me，返回同一个用户和库里的 csrfToken。
+    - 调 me 后 `last_seen_at`、`idle_expires_at` 被续期，`absolute_expires_at` 不变。
+    - 把 `idle_expires_at` 或 `absolute_expires_at` 改到过去、或删除这一行，me 都返回 401。
+    - A、B 两个 Cookie 各自拿到自己的身份。
+- 注意事项：不做退出（下一步）；不做 Origin/CSRF 校验和限流（M1-T08）；GET 请求不要求 CSRF。
+- 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0；生成契约的差异只包含 me。
 
 ## 实际执行记录
 
