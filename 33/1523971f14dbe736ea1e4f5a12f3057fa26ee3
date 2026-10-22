@@ -1,0 +1,19 @@
+apps/api/test/integration/auth-me.db.spec.ts
+  s_e54dc915e658bd::t_c80d39ff392448 1-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "331523971f14dbe736ea1e4f5a12f3057fa26ee3",
+  "prompts": {},
+  "sessions": {
+    "s_e54dc915e658bd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c7fdf0e1-1c6c-46e3-a781-e9905a95d743",
+        "model": "default"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
