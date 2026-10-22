@@ -1,0 +1,19 @@
+apps/api/test/support/auth-app.ts
+  s_587f9f714077a7::t_582795a0d35a70 1-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "efe463f0a4af3a8c7b6fb61fd8560f75454f484e",
+  "prompts": {},
+  "sessions": {
+    "s_587f9f714077a7": {
+      "agent_id": {
+        "tool": "kiro-cli",
+        "id": "5531098c-0880-4bfa-be9b-8fca3082167a",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
