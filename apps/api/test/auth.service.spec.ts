@@ -30,6 +30,7 @@ const authModulePath = new URL('../src/modules/auth/auth.module.ts', import.meta
 type PublicUser = { id: string; username: string }
 type AuthServiceLike = {
   verifyCredentials(username: string, password: string): Promise<PublicUser | null>
+  findSessionUser(userId: string): Promise<PublicUser | null>
 }
 
 const fixtureUser: PublicUser = { id: '00000000-0000-4000-8000-000000000001', username: 'demo_a' }
@@ -71,7 +72,7 @@ function fakeUsers() {
     findCredentialsByUsername: vi.fn(async (username: string) =>
       username === fixtureUser.username ? { ...fixtureUser, passwordHash: fixtureHash } : null,
     ),
-    findPublicById: vi.fn(async () => {
+    findPublicById: vi.fn(async (_id: string): Promise<PublicUser | null> => {
       throw new Error('verifyCredentials should not need findPublicById')
     }),
     createIfAbsent: vi.fn(async () => {
@@ -222,6 +223,46 @@ describe('AuthService.verifyCredentials', () => {
 
     // 当成 null 返回的话，数据库一断，用户看到的就是「用户名或密码错误」。
     await expect(service.verifyCredentials('demo_a', fixturePassword)).rejects.toBe(unavailable)
+  })
+})
+
+// me 用：按会话里的 userId 取公开身份（M1-S25）。只读 users，不碰密码哈希。
+describe('AuthService.findSessionUser', () => {
+  function usersWithPublicLookup() {
+    const users = fakeUsers()
+    users.findPublicById.mockImplementation(async (id: string) =>
+      id === fixtureUser.id ? { ...fixtureUser } : null,
+    )
+    return users
+  }
+
+  it('returns the public identity for the session user as a plain object', async () => {
+    const { service, users } = await createService(usersWithPublicLookup())
+
+    await expect(service.findSessionUser(fixtureUser.id)).resolves.toStrictEqual(fixtureUser)
+
+    expect(users.findPublicById).toHaveBeenCalledExactlyOnceWith(fixtureUser.id)
+    expect(users.findCredentialsByUsername).not.toHaveBeenCalled()
+    expect(verifyPassword).not.toHaveBeenCalled()
+    expect(hashPassword).not.toHaveBeenCalled()
+  })
+
+  it('returns null when the user no longer exists', async () => {
+    const { service, users } = await createService(usersWithPublicLookup())
+    const missing = '00000000-0000-4000-8000-0000000000ff'
+
+    await expect(service.findSessionUser(missing)).resolves.toBeNull()
+    expect(users.findPublicById).toHaveBeenCalledExactlyOnceWith(missing)
+  })
+
+  it('rethrows a repository failure instead of reporting a missing user', async () => {
+    const users = usersWithPublicLookup()
+    const unavailable = new Error('database unavailable')
+    users.findPublicById.mockRejectedValueOnce(unavailable)
+    const { service } = await createService(users)
+
+    // 当成 null 的话，数据库一断，已登录的人就被当成「没登录」。
+    await expect(service.findSessionUser(fixtureUser.id)).rejects.toBe(unavailable)
   })
 })
 
