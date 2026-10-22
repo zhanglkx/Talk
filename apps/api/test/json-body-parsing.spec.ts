@@ -13,6 +13,7 @@ import { ConnectionLifecycleService } from '../src/database/connection-lifecycle
 // 格式错误的 JSON 请求体（M1-S23）：body-parser 的报错信息是 JSON.parse 的原文，会带出请求体的片段。
 // configureApp 之后，这类请求一律返回固定的 400，响应和日志里都不能出现请求体的任何内容。
 const probePath = '/api/v1/json-probe'
+const guardModulePath = new URL('../src/common/guards/auth.guard.ts', import.meta.url).href
 const secret = 'fixture-secret-value'
 const malformedJsonResponse = {
   statusCode: 400,
@@ -43,9 +44,12 @@ function sessionCookie(sessionId: string): string {
 }
 
 async function createApp({ withSession = false } = {}) {
+  // 全局 AuthGuard 默认要求登录（M1-S25）；本测试只关心 JSON 解析，所以把测试用的 Controller 标为公开。
+  const { Public } = await import(guardModulePath)
   // Controller 收到的每个请求体都记在这里；被拒绝的请求不应该出现。
   const received: unknown[] = []
 
+  @Public()
   @Controller()
   class JsonProbeController {
     @Post('json-probe')

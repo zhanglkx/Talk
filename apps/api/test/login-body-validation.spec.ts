@@ -15,6 +15,7 @@ import { ConnectionLifecycleService } from '../src/database/connection-lifecycle
 // 不合格的请求必须在调用 Controller 之前返回 400；生成的 OpenAPI 里能看到这些规则。
 const schemasModulePath = new URL('../src/modules/auth/schemas.ts', import.meta.url).href
 const usernameModulePath = new URL('../src/modules/users/username.ts', import.meta.url).href
+const guardModulePath = new URL('../src/common/guards/auth.guard.ts', import.meta.url).href
 const probePath = '/api/v1/schema-probe/login'
 
 const validPassword = 'fixture-passw0rd'
@@ -34,10 +35,13 @@ async function createApp() {
   const schemas = await import(schemasModulePath)
   expect(schemas.LoginBodySchema?.['~standard']?.vendor).toBe('zod')
   const { LoginBodySchema } = schemas
+  // 全局 AuthGuard 默认要求登录（M1-S25）；本测试只关心请求体校验，所以把测试用的 Controller 标为公开。
+  const { Public } = await import(guardModulePath)
 
   // Controller 收到的每个请求体都记在这里；400 的请求不应该出现。
   const received: unknown[] = []
 
+  @Public()
   @Controller('schema-probe')
   class LoginBodyProbeController {
     @Post('login')

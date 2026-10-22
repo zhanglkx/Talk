@@ -78,5 +78,9 @@ describe('offline contracts generation', () => {
     expect(document.paths['/api/v1/auth/login'].post.operationId).toBe('AuthController_login')
     expect(apiTypes).toContain('"/api/v1/auth/login"')
     expect(apiTypes).toContain('AuthController_login')
+    // M1-S25：me 接口进入契约和 Web 类型。
+    expect(document.paths['/api/v1/auth/me'].get.operationId).toBe('AuthController_me')
+    expect(apiTypes).toContain('"/api/v1/auth/me"')
+    expect(apiTypes).toContain('AuthController_me')
   }, 60_000)
 })
