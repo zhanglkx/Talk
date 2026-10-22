@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S24 已验收；当前步骤 M1-S25，me 与 AuthGuard，待用户确认设计）。
+- 状态：**进行中**（M1-S24 已验收；当前步骤 M1-S25，me 与 AuthGuard，测试已就绪）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -74,7 +74,7 @@
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
 | M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | done |
 | M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | done |
-| M1-S25 | `GET /api/v1/auth/me` 与 AuthGuard：身份只来自会话，未登录、会话过期或用户不存在均 401；返回 user 和 csrfToken。不含退出，退出留到下一步。 | 待用户确认设计 |
+| M1-S25 | `GET /api/v1/auth/me` 与 AuthGuard：身份只来自会话，未登录、会话过期或用户不存在均 401；返回 user 和 csrfToken。不含退出，退出留到下一步。 | 测试已就绪，等待用户实现 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -838,35 +838,111 @@ M1-S24 验收证据（2026-10-21）：
   - 技术方案「AuthGuard 只从有效 session 取得 userId。me 查询该 ID，用户不存在视为无效会话；不接受 body/query 的 userId 或客户端 Header 作身份」「GET me 不要求 CSRF」「me/login 使用 Cache-Control:no-store」。
   - M1-T07（me/logout 与 AuthGuard，1.5h）拆成两步：本步做 me 与 AuthGuard，退出留到下一步。
 - 计划：新增 `GET /api/v1/auth/me` 和 AuthGuard。Guard 是 Nest 在调用 Controller 方法之前执行的一道检查，要么放行，要么抛错。把「这个请求登录了没有」放进 Guard，以后每个需要身份的接口都复用这一份判断，不用在每个方法里各写一遍。
-- 建议设计（待用户确认）：
+- 设计（用户选 A，具体写法见下方「待用户实现」）：
   - `apps/api/src/common/guards/auth.guard.ts`，`AuthGuard implements CanActivate`：
     - 只看 `request.session?.userId` 是不是字符串，不查库。会话过期由 Store 的 `get` 判断：过期返回 `null`，express-session 换成一个没有 `userId` 的空会话，Guard 自然拒绝，不必再算一遍期限。
     - 拒绝时自己抛 `UnauthorizedException`，文案固定（例如 `Authentication required`）。如果只是返回 `false`，Nest 回的是 403 `Forbidden resource`（已核对 `@nestjs/core@12.1.2` 源码），与 PRD 的 401 不符。
-  - Guard 的挂法，待用户二选一：
+  - Guard 的挂法，两种方案（用户选 A）：
     - A（建议）：全局注册（`APP_GUARD`），默认所有接口都要登录；health、ready、login 用 `@Public()` 标记放行，Guard 用 `Reflector` 读这个标记。理由与 S23 全局注册 Pipe 相同：M2 起新增的业务接口如果忘了处理，得到的是 401，立刻能发现；而不是对匿名请求开放。不在 `SESSION_PATHS` 下的接口没有 `req.session`，同样得到 401，也会提醒把路径加进去。代价：health、internal 两个 Controller 各加一行 `@Public()`；现有测试里只在测试中存在的 Controller（`login-body-validation`、`json-body-parsing` 等）也要加，这部分由助手改。
     - B：只在需要身份的方法上写 `@UseGuards(AuthGuard)`。改动最少，但漏写一次就多一个不需要登录的接口，类型检查和现有测试都发现不了。
   - me：
-    - `AuthController` 新增 `@Get('me')`、`@Header('Cache-Control', 'no-store')`。从 `request.session.userId` 取 ID，调用 S14 的 `findPublicById`，返回 `{ user: { id, username }, csrfToken }`。
+    - `AuthController` 新增 `@Get('me')`、`@Header('Cache-Control', 'no-store')`。从 `request.session.userId` 取 ID，经 `AuthService.findSessionUser` 调用 S14 的 `findPublicById`，返回 `{ user: { id, username }, csrfToken }`。
     - query、Header、body 里的 userId 一律不读。
     - 用户不存在（会话还在、用户已删除）视为无效会话，返回 401。sessions 表的外键带 `ON DELETE CASCADE`，删用户时会话一起删，这里只防两者之间的极短窗口。
   - 为什么 me 要返回 csrfToken：Cookie 是 HttpOnly，页面脚本读不到会话内容。以后退出等写请求要在 `X-CSRF-Token` 头里带上这个值（M1-T08 校验），页面只能从 me 拿到它，放在内存里。
   - 续期：me 不修改会话，express-session 在响应结束时调用 Store 的 `touch`，闲置截止往后推到 12 小时后（不超过绝对截止）。所以页面每次打开调用 me，就算一次活动。
   - Schema：`schemas.ts` 抽出 `PublicUserSchema`（login 和 me 共用），新增 `MeResponseSchema`；OpenAPI 声明 200、401。
   - 数据库离线：会话中间件读会话时就会失败，返回 5xx；映射成 503 留到 M1-T08。
-- 测试（确认后助手先写）：
-  - 离线：Guard 单元测试；HTTP 测试用真实 `AppModule`、`configureApp`、`configureSession`，仓储换成内存替身。覆盖：
-    - 有效会话：200，响应恰好 `{ user, csrfToken }`，带 `no-store`。
-    - 无 Cookie、签名错误、会话不存在、会话过期、用户不存在：都是 401，没有 `Set-Cookie`。
-    - `?userId=`、`X-User-Id` 头不改变返回的用户。
-    - 选 A 时：health、ready、login 不需要登录。
-    - OpenAPI：200 的结构和 401。
-  - `ledger_it` 真实库：
-    - 登录后用同一个 Cookie 调 me，返回同一个用户和库里的 csrfToken。
-    - 调 me 后 `last_seen_at`、`idle_expires_at` 被续期，`absolute_expires_at` 不变。
-    - 把 `idle_expires_at` 或 `absolute_expires_at` 改到过去、或删除这一行，me 都返回 401。
-    - A、B 两个 Cookie 各自拿到自己的身份。
+- 测试：离线 Guard 单元与 HTTP 测试、`ledger_it` 真实库测试，助手先写，内容见下方测试准备记录。
 - 注意事项：不做退出（下一步）；不做 Origin/CSRF 校验和限流（M1-T08）；GET 请求不要求 CSRF。
 - 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0；生成契约的差异只包含 me。
+
+M1-S25 决定与测试准备记录（2026-10-22）：
+- 用户回复「按照你的建议，进行下一步」，选 A：全局注册 AuthGuard，用 `@Public()` 放行。
+- 待用户实现（用户手写）：
+  - 新建 `apps/api/src/common/guards/auth.guard.ts`：
+    - 导出 `IS_PUBLIC_KEY`（字符串常量），以及 `Public = () => SetMetadata(IS_PUBLIC_KEY, true)`。`SetMetadata` 来自 `@nestjs/common`，作用是在类或方法上记下一个标记，Guard 运行时再读出来。
+    - 导出 `@Injectable()` 的 `AuthGuard implements CanActivate`，构造参数为 `private readonly reflector: Reflector`（从 `@nestjs/core` 值导入）。
+    - `canActivate(context)`：
+      - 先用 `this.reflector.getAllAndOverride(IS_PUBLIC_KEY, [context.getHandler(), context.getClass()])` 读标记，为 `true` 就放行。这样标在方法上和标在类上都能生效。
+      - 再取 `context.switchToHttp().getRequest<Express.Request>()`，`typeof request.session?.userId === 'string'` 才放行。要写 `?.`：不在 `SESSION_PATHS` 下的接口没有会话中间件，`request.session` 是 `undefined`。
+      - 否则抛 `UnauthorizedException('Authentication required')`。
+  - `app.module.ts`：`providers: [{ provide: APP_GUARD, useClass: AuthGuard }]`，`APP_GUARD` 来自 `@nestjs/core`。用 `useClass` 由 Nest 创建 Guard，它才能注入 `Reflector`。注册在模块里，而不是在 `configureApp` 里 `useGlobalGuards`：这样任何组装 `AppModule` 的方式（`main.ts`、测试、以后的脚本）都自动带上 Guard。
+  - `health.controller.ts`、`internal.controller.ts`：类上加 `@Public()`。
+  - `auth.controller.ts`：
+    - 只在 `login` 方法上加 `@Public()`，不要加在整个 `AuthController` 上。加在类上的话，me 和以后的退出都会对匿名请求开放。
+    - 新增 `me` 方法：`@Get('me')`、`@Header('Cache-Control', 'no-store')`、`@ApiOkResponse({ description, standardSchema: MeResponseSchema })`、`@ApiUnauthorizedResponse(...)`。参数只有 `@Req() request: Express.Request`。
+      - 从 `request.session` 取 `userId`、`csrfToken`。它们的类型是 `string | undefined`，要先判断是字符串，否则抛同样的 401。正常情况下 Guard 已经保证有 `userId`，Store 只保存两个字段都有的会话。
+      - 调用 `this.authService.findSessionUser(userId)`。返回 `null` 时抛 `UnauthorizedException('Authentication required')`。
+      - 返回 `{ user: { id, username }, csrfToken }`。不写 `try/catch`，数据库错误原样抛出。
+  - `schemas.ts`：抽出 `PublicUserSchema = z.object({ id: z.uuid(), username: z.string() })`。`LoginResponseSchema` 改为 `z.object({ user: PublicUserSchema })`，生成的 OpenAPI 不变。新增 `MeResponseSchema = z.object({ user: PublicUserSchema, csrfToken: z.string() })`。
+  - `auth.service.ts`：新增 `findSessionUser(userId: string): Promise<PublicUser | null>`，直接返回 `this.users.findPublicById(userId)`。不捕获错误：当成 `null` 的话，数据库一断，已登录的人就被当成「没登录」。
+    - 为什么不让 Controller 直接调用 `UsersRepository`：`AuthModule` 没有导出 `UsersRepository`，Controller 只依赖 `AuthService`，测试也只需要替换这一个服务。
+- 测试：
+  - 新增共用的 `apps/api/test/support/auth-app.ts`：按 `main.ts` 的方式组装真实应用，`AuthService`、`SessionsRepository` 换成内存替身，数据库一律不可用。还提供签名 Cookie、构造会话行和 401 期望值。
+  - 新增 `apps/api/test/auth-guard.spec.ts`，21 条：
+    - 单元：会话里有字符串 `userId` 时放行；没有会话、会话为 `null`、没有 `userId`、`userId` 是数字或对象，都抛 `UnauthorizedException`，响应体为 `{ statusCode: 401, error: 'Unauthorized', message: 'Authentication required' }`。
+    - 单元：query、Header、body、`request.user`、`request.userId` 里的身份都无效。
+    - 单元：方法上的 `@Public()` 放行且不读请求，同一个类的其他方法仍要登录；类上的 `@Public()` 对所有方法生效。
+    - 单元：`AuthController` 的 `login` 放行、`me` 拒绝。
+    - HTTP，用只在测试里存在的 Controller，确认 Guard 是全局的：
+      - 匿名请求为 401（不是 403），不进入 Controller，没有 Cookie。
+      - 有效会话放行，`userId` 来自会话。
+      - 未知会话、闲置过期、绝对过期都是 401。
+      - 用别的密钥签名的 Cookie 为 401，且不查会话。
+      - 不在会话路径下的接口，带有效 Cookie 也是 401，且不查会话。
+      - 匿名请求带不合格的请求体，返回 401 而不是 400，因为 Guard 在 Pipe 之前执行。
+      - 类上标了 `@Public()` 的测试 Controller 可以匿名访问。
+      - health 200、ready 503（数据库不可用）、login 200，都不需要登录。
+      - 不存在的路径仍是 404。
+  - 新增 `apps/api/test/auth-me.spec.ts`，14 条：
+    - 有效会话：响应恰好 `{ user, csrfToken }`，带 `no-store`，不重新下发 Cookie，`findSessionUser` 收到会话里的 `userId`。
+    - 调 me 后闲置截止续到 12 小时后，绝对截止不变，`csrfToken` 和归属不变，不新建会话，没有错误日志。
+    - `?userId=`、`X-User-Id` 头、JSON 请求体里的 `userId` 都不改变返回的用户。
+    - alice、bob 各自拿到自己的身份和 token。
+    - 先真实登录，再用拿到的 Cookie 调 me 两次：返回登录时存下的 token，两次相同。
+    - 无 Cookie、未知会话、闲置过期、绝对过期、别的密钥签名：都是同一个 401，没有 Cookie，不查用户，不续期、不新建会话。
+    - 会话还在、用户已删除：同一个 401，带 `no-store`。
+    - 查会话失败、查用户失败：5xx 而不是 401，响应里没有内部错误信息。
+    - OpenAPI：`operationId` 为 `AuthController_me`，没有请求体和参数，响应恰好 200/401，200 的结构只有 `user.id`（uuid）、`user.username` 和 `csrfToken`。
+  - `apps/api/test/auth.service.spec.ts` 新增 3 条 `findSessionUser`：返回普通对象且不碰密码哈希；用户不存在返回 `null`；仓储错误原样抛出。
+  - `apps/api/test/contracts.spec.ts` 新增 3 个断言：生成的 OpenAPI 和 Web 类型中有 me 接口和 `AuthController_me`。
+  - `login-body-validation.spec.ts`、`json-body-parsing.spec.ts`：只在测试里存在的 Controller 加上 `@Public()`。这两个文件只测请求体，不测登录。
+  - 新增 `apps/api/test/integration/auth-me.db.spec.ts`，9 条，在 `ledger_it` 写入三个虚构用户后启动真实的 `dist/main.js`，先真实登录再调 me：
+    - 返回登录的用户和 sessions 表里存的 token，带 `no-store`，不重新下发 Cookie。
+    - 把会话退回一小时前，调 me 后库里的闲置截止被续期，绝对截止和 `data` 不变。
+    - alice、bob 各自拿到自己的身份和 token，query 和 Header 里的 `userId` 无效。
+    - 无 Cookie 为 401。
+    - 闲置截止已过、绝对截止已过、会话行被删除：都是 401，库里那一行不被续期，也不被重新建出来。
+    - 会话还在、用户已删除：401。外键带 `ON DELETE CASCADE`，所以测试先临时删掉外键 `fk_sessions_user_id`，结束时在 `finally` 中清掉这一行会话并按原定义加回外键。用的是单独的用户 carol，不影响其他用例。
+    - health 仍为 200；进程输出中没有错误、三个密码、token、会话 ID、会话密钥和连接串；SIGTERM 后 `ledger_it` 上没有它留下的连接。
+- 测试自身的核对：
+  - 在 `/tmp` 下建临时 git worktree，这次在其中单独执行 `pnpm install --frozen-lockfile --offline`（只用本地 store），不再用软链共用依赖。前后核对：主工作区三个 `node_modules/.bin` 的文件摘要不变，没有指向 `/tmp` 的脚本，`pnpm-lock.yaml` 的 SHA-256 不变。
+  - 放入上面的参考实现：
+    - `tsc` 通过。
+    - 完整 API 测试 28 个文件、326 条通过，包括真实的 contracts 命令。worktree 有自己的 `node_modules`，S24 时 pnpm 拒绝执行脚本的问题没有再出现。
+    - 生成契约：`docs/openapi.json` 增加 52 行、Web 类型增加 50 行，没有删改，只有 `/api/v1/auth/me`。login 的部分不变，说明抽出 `PublicUserSchema` 不影响契约。
+    - `test:db` 13 个文件、91 条通过，运行后 `ledger_it` 上连接数为 0。
+  - 18 种错误写法在离线测试中全部被发现（括号内为失败条数）：
+    - Guard：拒绝时返回 `false`（20）；只判断 `userId` 为真值而不是字符串（2）；有会话就放行（10）；401 不带文案（16）；不全局注册（7）。
+    - `@Public()`：health 不标（4）；internal 不标（4）；login 不标（13）；标在整个 `AuthController` 上（1）。
+    - me：读 `?userId=`（1）；不检查用户是否存在（1）；不设 `no-store`（2）；每次调用都换新 token（4）；不返回 `csrfToken`（3）；把数据库错误当成 401（1）；200 不描述响应结构（1）。
+    - `findSessionUser`：吞掉数据库错误（1，只有 `auth.service.spec.ts` 能发现）；查错了方法（3）。
+  - 其中 5 种另外在真实库测试中运行：读 `?userId=`（1）、不检查用户是否存在（2）、每次换新 token（1）、查错了方法（3）都被发现；「有会话就放行」在真实库测试中没有被发现，因为 me 自己还会检查 `userId`，这一种由离线的 Guard 测试负责。
+  - 用参考实现的构建产物，以确认连不上的 `127.0.0.1:1` 作数据库地址启动 `dist/main.js`，匿名请求 me：401，响应体为上面的固定文案，没有 `Set-Cookie`，也没有 `Cache-Control: no-store`。原因：Guard 在 Nest 设置 `@Header` 之前就抛错了（已核对 `@nestjs/core@12.1.2` 的 `router-execution-context.js`：先执行 Guard，再设置状态码和响应头）。401 响应体不含身份信息，浏览器默认也不缓存 401；技术方案要求的「错误响应也带 no-store」归在 M1-T08 统一处理，本步不要求，测试只对 me 方法内抛出的 401 断言 `no-store`。
+  - 环境：这个探测进程第一次 SIGTERM 发给了错误的 PID（shell 里 `$!` 指向的不是它），发现后再次 SIGTERM，确认已退出、端口不再监听。它只连过不可达地址。
+  - worktree、参考实现和临时脚本都已删除。
+- 实现前运行（工作区）：
+  - `pnpm --filter @ledger/api test`：28 个文件、326 条，73 条失败，都来自待实现的部分：
+    - `auth-guard` 21 条，因 `auth.guard.ts` 不存在（Cannot find module）。
+    - `login-body-validation` 22 条、`json-body-parsing` 13 条，同样因为 `auth.guard.ts` 不存在（导入 `Public` 失败）。
+    - `auth-me` 14 条中 13 条失败：me 返回 404，OpenAPI 中没有 me。通过的 1 条是「查会话失败时返回 5xx」，在当前代码下就成立，作为回归保护。
+    - `auth.service` 新增的 3 条：`findSessionUser is not a function`。
+    - `contracts` 1 条：生成的 OpenAPI 中没有 me 路径。
+  - 其余 253 条通过；生成契约无 Git 差异。
+  - `test:db`：13 个文件、91 条。`auth-me.db.spec.ts` 9 条中 8 条失败，都因为 me 返回 404；最后一条（health、日志、释放连接）在当前代码下就成立。其余 83 条通过。运行前后 `ledger_it` 上连接数均为 0；`fk_sessions_user_id` 已按原定义加回（`FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`）。
+  - `pnpm typecheck` 通过；测试文件通过 Prettier（`--write` 只调整了 `auth-me.spec.ts` 的一处换行）。
+- 未修改业务代码。
 
 ## 实际执行记录
 
