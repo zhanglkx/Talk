@@ -1,7 +1,7 @@
 # M1｜业务数据库与认证最小闭环
 
 - 目标窗口：2026-10-12 ～ 2026-11-08。
-- 状态：**进行中**（M1-S24 已验收；当前步骤 M1-S25，me 与 AuthGuard，测试已就绪）。
+- 状态：**进行中**（M1-S25 已验收；当前步骤 M1-S26，退出与旧 Cookie 重放）。
 - 基线：`4a3f08b`；文档制定日期：2026-10-09。
 - 核心任务：10 张卡，建议工时合计 15 小时；不含所有环境阻塞。
 
@@ -36,7 +36,7 @@
 | M1-R01 | 空库显式执行 migration 后具备 users/sessions；再次执行不重复建表；应用启动不自动建表或迁移。 | 通过（2026-10-15，M1-S11）：`apps/api/test/integration/migrations-run.db.spec.ts`、`users-migration.db.spec.ts`、`sessions-migration.db.spec.ts`；启动不连库、不迁移见 `apps/api/test/database-startup.spec.ts`（M1-S05）。down 未在真实库演练。 |
 | M1-R02 | seed 建立两个虚构账号；只保存密码哈希，不把密码写入代码、文档或日志；再次执行不悄悄重置已有密码。 | 通过（2026-10-15，M1-S17，限 `ledger_it`）：`apps/api/test/integration/seed-demo-users.db.spec.ts`、`apps/api/test/demo-users.spec.ts`、`apps/api/test/integration/users-repository-write.db.spec.ts`。开发库上的演示留到 M1-T10。 |
 | M1-R03 | 正确凭据登录成功并轮换 Session ID；错误用户名和错误密码均返回相同 401 文案，不泄露账号存在性。 | 部分（2026-10-21，M1-S24）：条件本身已有证据，见 `apps/api/test/auth-login.spec.ts`、`apps/api/test/integration/auth-login.db.spec.ts`。按 S24 计划，等 M1-T08 加上登录前的 Origin 检查、统一错误形状后复核，再标通过。 |
-| M1-R04 | me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户。 | 未验证 |
+| M1-R04 | me 从会话取得身份；未登录、已退出、闲置/绝对过期均 401；客户端 userId 不改变返回用户。 | 部分（2026-10-27，M1-S25）：身份来自会话、未登录/过期/用户不存在为 401、客户端 userId 无效，见 `apps/api/test/auth-me.spec.ts`、`apps/api/test/integration/auth-me.db.spec.ts`。已退出要等 M1-S26 后再标通过。 |
 | M1-R05 | 退出销毁服务端会话并清同名/同路径 Cookie；重放旧 Cookie 不恢复登录。 | 未验证 |
 | M1-R06 | 登录检查可信 Origin；已登录写请求检查 Origin 和 X-CSRF-Token。缺失或错误返回 403。 | 未验证 |
 | M1-R07 | Web 显示加载、账号、登录失败、网络失败和退出状态；密码及会话不得存入 localStorage。 | 未验证 |
@@ -74,7 +74,8 @@
 | M1-S22 | 登录凭据校验 `AuthService.verifyCredentials`：规范化用户名、查凭据、校验密码；所有失败返回同一结果，用户名不存在时也校验一次哈希。不含 HTTP 接口。 | done |
 | M1-S23 | 接入 Zod，定义登录请求体 Schema，并验证它在当前 Nest/Swagger 版本上能在运行时拦截不合格请求、也能写进 OpenAPI。不含登录 Controller。 | done |
 | M1-S24 | 登录接口 `POST /api/v1/auth/login`：校验凭据、轮换 Session ID、显式保存后返回最小 user；失败不下发 Cookie。不含 Origin 检查和限流（M1-T08）。 | done |
-| M1-S25 | `GET /api/v1/auth/me` 与 AuthGuard：身份只来自会话，未登录、会话过期或用户不存在均 401；返回 user 和 csrfToken。不含退出，退出留到下一步。 | 测试已就绪，等待用户实现 |
+| M1-S25 | `GET /api/v1/auth/me` 与 AuthGuard：身份只来自会话，未登录、会话过期或用户不存在均 401；返回 user 和 csrfToken。不含退出，退出留到下一步。 | done |
+| M1-S26 | `POST /api/v1/auth/logout`：销毁服务端会话，成功后才清同名同路径 Cookie；旧 Cookie 重放不能恢复登录。不含 Origin/CSRF（M1-T08）。 | 未开始 |
 
 M1-S01 验收证据（2026-10-13）：`pnpm --filter @ledger/api test` 为 3 个文件、6 个测试通过；`pnpm typecheck` 通过。测试在 `apps/api/test/connection-lifecycle.service.spec.ts`、`health.spec.ts`、`readiness.spec.ts`。临时拿掉「进行中的连接只等一次」后，并发测试失败（第二个调用提前返回）；恢复后全套再次通过。仓库根的 `pnpm test` 仍只跑 Web。
 
@@ -943,6 +944,32 @@ M1-S25 决定与测试准备记录（2026-10-22）：
   - `test:db`：13 个文件、91 条。`auth-me.db.spec.ts` 9 条中 8 条失败，都因为 me 返回 404；最后一条（health、日志、释放连接）在当前代码下就成立。其余 83 条通过。运行前后 `ledger_it` 上连接数均为 0；`fk_sessions_user_id` 已按原定义加回（`FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`）。
   - `pnpm typecheck` 通过；测试文件通过 Prettier（`--write` 只调整了 `auth-me.spec.ts` 的一处换行）。
 - 未修改业务代码。
+
+M1-S25 验收证据（2026-10-27）：
+- 实现：用户手写 `auth.guard.ts`（全局 `AuthGuard` 与 `@Public()`）、`app.module.ts` 的 `APP_GUARD`、health/internal/login 的放行、`findSessionUser`、`PublicUserSchema`/`MeResponseSchema` 和 `AuthController.me`。`me` 只读会话里的 `userId`，再查公开身份；用户不存在返回 401；响应带 `csrfToken` 和 `Cache-Control: no-store`。验收前删掉了控制器里未使用的 `PublicUser`、`PublicUserSchema` 导入，并整理了 `auth.controller.ts`、`schemas.ts` 的格式，没有改行为。
+- `pnpm --filter @ledger/api exec vitest run test/auth-me.spec.ts test/auth-guard.spec.ts test/auth-schemas.spec.ts test/login-body-validation.spec.ts test/auth-login.spec.ts test/auth.service.spec.ts`：6 个文件、154 条通过。去掉未使用导入后再跑 `auth-me`、`auth-login`、`auth-guard`：3 个文件、48 条通过。
+- `pnpm check`：退出码 0；API 28 个文件、326 条，Web 1 个文件、2 条，build 完成。
+- 生成契约：`docs/openapi.json` 增加 52 行、`apps/web/src/generated/api-types.ts` 增加 50 行，只有新增，内容只有 `/api/v1/auth/me` 和 `AuthController_me`。login 的请求体仍是 `username`/`password`。这两份文件随本步一起提交。
+- `DATABASE_URL=postgresql://127.0.0.1:5432/ledger_it ALLOW_DATABASE_RESET=ledger_it pnpm --filter @ledger/api run test:db`：13 个文件、91 条通过，其中 `auth-me.db.spec.ts` 9 条。运行后从维护库查看，`ledger_it` 上没有残留连接。
+- 没有验证到：
+  - 退出后旧 Cookie 重放（M1-S26），所以 M1-R04 只标「部分」。
+  - Origin/CSRF 和限流（M1-T08）。
+  - 依赖失败时返回的是 5xx，映射成 503 留到 M1-T08。Guard 在设置 `@Header` 之前抛出的 401 不带 `no-store`，也留到 M1-T08。
+- 用户暂未合并的写法（不影响验收）：`app.module.ts` 上有两个 `@Module`。一个只注册 `APP_GUARD`，一个只放 `imports`。Nest 按键分别记下这两份元数据，所以 Guard 已经生效。以后改这个文件时要合成一个；只留下 `imports` 那一个，全局 Guard 会消失，新接口就会对匿名请求开放。
+
+### M1-S26 详情
+
+- 来源：PRD M1-R05「退出销毁服务端会话并清同名/同路径 Cookie；重放旧 Cookie 不恢复登录」，接口表「POST /api/v1/auth/logout：204 无响应体；401 无效会话」。M1-T07 的后一半。Origin 和 `X-CSRF-Token` 留到 M1-T08，本步不标 M1-R06。
+- 计划：已登录的人调用退出后，服务端删掉这一行会话，浏览器里的 `ledger.sid` 也被清掉。之后再带上原来的 Cookie，不能变回登录状态，也不能把这一行重新建出来。
+- 设计（开始前请确认）：
+  - `AuthController` 新增 `logout`。不要加 `@Public()`：没登录就由 Guard 返回 401。
+  - `@Post('logout')`、`@HttpCode(204)`、`@Header('Cache-Control', 'no-store')`。成功时不返回内容。
+  - 调用 `request.session.destroy(callback)`，等回调成功后再清 Cookie。express-session 1.19.0 的 `destroy` 会立刻删掉 `req.session`，再让 Store 删数据库行；默认的 `unset` 不是 `destroy`，响应结束时不会替我们清 Cookie。所以要自己清，而且必须等删除成功。
+  - 清 Cookie 的名字和属性要和登录时下发的一致：`ledger.sid`、`Path=/`、`HttpOnly`、`SameSite=Lax`、`Secure` 为 false，不设 Domain。属性不一致时，浏览器会留下旧 Cookie，退出看起来成功，下次请求仍带着它。
+  - 删除失败时不清 Cookie，原样抛错（现在是 5xx，映射成 503 留到 M1-T08）。这时浏览器还拿着旧 Cookie；行如果没删掉，用户仍然是登录的，可以重试退出。
+  - OpenAPI 声明 204 和 401。`pnpm contracts` 会多出 logout 路径。
+- 动作：确认后，助手先写离线测试和 `ledger_it` 测试，再由用户手写 `logout`。
+- 验收：离线测试与 `test:db` 通过；`pnpm check` 退出码 0；生成契约的差异只包含 logout。通过后把 M1-R05 标为通过；M1-R04 的「已退出」一并复核。
 
 ## 实际执行记录
 
