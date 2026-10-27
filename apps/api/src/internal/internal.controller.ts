@@ -1,10 +1,7 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common'
-import {
-  ApiOkResponse,
-  ApiProperty,
-  ApiServiceUnavailableResponse,
-} from '@nestjs/swagger'
+import { ApiOkResponse, ApiProperty, ApiServiceUnavailableResponse } from '@nestjs/swagger'
 import { DatabaseReadinessService } from '@/database/database-readiness.service.js'
+import { Public } from '@/common/guards/auth.guard.js'
 
 class ReadyResponse {
   @ApiProperty({ enum: ['ready'], example: 'ready' })
@@ -19,7 +16,7 @@ class NotReadyResponse {
 @Controller('internal')
 export class InternalController {
   constructor(private readonly databaseReadinessService: DatabaseReadinessService) {}
-
+  @Public()
   @Get('ready')
   @ApiOkResponse({ type: ReadyResponse, example: { status: 'ready' } })
   @ApiServiceUnavailableResponse({

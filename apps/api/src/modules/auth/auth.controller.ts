@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import {
   Body,
   Controller,
+  Get,
   Header,
   HttpCode,
   Post,
@@ -11,7 +12,8 @@ import {
 import { ApiBadRequestResponse, ApiOkResponse, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import type { z } from 'zod'
 import { AuthService } from '@/modules/auth/auth.service.js'
-import { LoginBodySchema, LoginResponseSchema } from '@/modules/auth/schemas.js'
+import { LoginBodySchema, LoginResponseSchema, MeResponseSchema } from '@/modules/auth/schemas.js'
+import { Public } from '@/common/guards/auth.guard.js'
 
 type LoginBody = z.infer<typeof LoginBodySchema>
 type LoginResponse = z.infer<typeof LoginResponseSchema>
@@ -21,6 +23,7 @@ export class AuthController {
   // AuthService 必须是值导入：Nest 靠编译时记下的参数类型决定注入什么。
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('login')
   @HttpCode(200)
   // 响应里有身份信息，浏览器和中间代理都不能缓存；对 401 也生效。
@@ -60,6 +63,25 @@ export class AuthController {
 
     // 只挑公开字段；csrfToken 不放进响应。
     return { user: { id: user.id, username: user.username } }
+  }
+
+  @Get('me')
+  @Header('Cache-Control', 'no-store')
+  @ApiOkResponse({
+    description: 'The current user and CSRF token',
+    standardSchema: MeResponseSchema,
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
+  async me(@Req() request: Express.Request) {
+    const { userId, csrfToken } = request.session
+    if (typeof userId !== 'string' || typeof csrfToken !== 'string') {
+      throw new UnauthorizedException('Authentication required')
+    }
+    const user = await this.authService.findSessionUser(userId)
+    if (user === null) {
+      throw new UnauthorizedException('Authentication required')
+    }
+    return { user: { id: user.id, username: user.username }, csrfToken }
   }
 }
 

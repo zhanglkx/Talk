@@ -3,14 +3,20 @@ import { USERNAME_PATTERN } from '@/modules/users/username.js'
 
 export const PasswordSchema = z.string().min(12).max(128)
 
+export const PublicUserSchema = z.object({
+  id: z.uuid(),
+  username: z.string(),
+})
 export const LoginBodySchema = z.object({
   username: z.string().trim().regex(USERNAME_PATTERN),
   password: PasswordSchema,
 })
 
 export const LoginResponseSchema = z.object({
-  user: z.object({
-    id: z.uuid(),
-    username: z.string(),
-  }),
+  user: PublicUserSchema,
+})
+
+export const MeResponseSchema = z.object({
+  user: PublicUserSchema,
+  csrfToken: z.string(),
 })

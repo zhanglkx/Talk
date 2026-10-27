@@ -40,4 +40,8 @@ export class AuthService {
     this.dummyHash ??= hashPassword(randomBytes(32).toString('base64'))
     return this.dummyHash
   }
+
+  async findSessionUser(userId: string): Promise<PublicUser | null> {
+    return this.users.findPublicById(userId)
+  }
 }
