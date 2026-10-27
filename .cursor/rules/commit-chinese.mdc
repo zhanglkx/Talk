@@ -1,0 +1,18 @@
+---
+description: Git 提交信息使用中文
+alwaysApply: true
+---
+
+# 提交信息语言
+
+- `git commit` 的 message 一律用中文（标题与正文都用中文）。
+- 仍按功能/模块拆分提交；一句说明「为什么」，不要堆砌文件清单。
+- 可保留常见前缀类型（可选）：`feat:` / `fix:` / `docs:` / `chore:`，后接中文说明。
+
+例：
+
+```
+feat: 增加登录接口并轮换 session
+
+校验账号后先 regenerate 再 save，写库失败则销毁会话，避免半登录状态。
+```
