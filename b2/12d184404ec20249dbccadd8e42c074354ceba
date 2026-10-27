@@ -1,0 +1,24 @@
+apps/api/src/app.module.ts
+  h_67f487dacd1d7d 8-9,11-18
+apps/api/src/modules/auth/auth.controller.ts
+  h_67f487dacd1d7d 15
+apps/api/src/common/guards/auth.guard.ts
+  h_67f487dacd1d7d 1-27
+apps/api/src/health/health.controller.ts
+  h_67f487dacd1d7d 3,9
+apps/api/src/internal/internal.controller.ts
+  h_67f487dacd1d7d 2,4,19
+apps/api/src/modules/auth/auth.service.ts
+  h_67f487dacd1d7d 43-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "b212d184404ec20249dbccadd8e42c074354ceba",
+  "prompts": {},
+  "humans": {
+    "h_67f487dacd1d7d": {
+      "author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
