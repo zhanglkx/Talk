@@ -1,0 +1,43 @@
+.kiro/steering/step-gate.md
+  s_16d393f386a2bb::t_2f8ed0697ce25d 1,3-8
+.kiro/steering/structure.md
+  s_16d393f386a2bb::t_964f59c25056a7 3,5-6,8,10-12,14,16-18
+docs/PRD.md
+  s_16d393f386a2bb::t_b2b4f1842d5464 1,3-5,7,9,11,13,15-17,19,21-26,28-31,33,35-45,47-51,53,55,57-61,63,65-66,68,70-71,73,75-76,78,80-82,84,86-88,90-104
+docs/plan/W01-从零跑通.md
+  s_16d393f386a2bb::t_f718e144bbd9d2 1-177
+docs/plan/templates.md
+  s_16d393f386a2bb::t_b707d2d41fbc36 1-61
+.kiro/steering/collaboration.md
+  s_16d393f386a2bb::t_94a98102e71943 1,5-8,10,12-13,15-29,33-34
+.cursor/rules/step-gate.mdc
+  s_16d393f386a2bb::t_016bf43ac016ae 2,6,8-11
+README.md
+  s_16d393f386a2bb::t_09cd01c6519b96 1,3,5,7,9,11,13-17,21
+.kiro/steering/tech.md
+  s_16d393f386a2bb::t_7f4a8aa7e9548c 1,3-21,25-31
+.cursor/rules/collaboration.mdc
+  s_16d393f386a2bb::t_5e851d07614cbc 1-12
+.kiro/steering/product.md
+  s_16d393f386a2bb::t_a9a5aff3aa72ff 3-8
+docs/plan/README.md
+  s_16d393f386a2bb::t_4dad992bd8e2bb 1,3-6,8,10,12-30,32,34,36,38,40,42-46,48-50,52,54-67,69-96,98-187,189-203,205
+docs/adr/README.md
+  s_16d393f386a2bb::t_96de866a582201 1,3,5,7-8,10,12,14,16-17,19-20,22,24,26,28-29,31,33,35,37-38,40,42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "fdcd0f9763fc409abbc08a8960f2fc134b0fd65a",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
