@@ -7,4 +7,6 @@ node_modules/
 .env.*
 !.env.example
 .DS_Store
-.kiro
+# Kiro 的本地配置不提交，只提交项目规则（steering）
+.kiro/*
+!.kiro/steering/

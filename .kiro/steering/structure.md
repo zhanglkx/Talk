@@ -9,10 +9,10 @@
 
 - `apps/api/`：业务模块放 `src/modules/<模块>/`（module、controller、service、entity、请求与响应的 schema）；横切逻辑放 `src/common/`；配置放 `src/config/`；migration 放 `src/database/migrations/`。
 - `apps/web/`：页面放 `src/pages/`，按业务拆 `src/features/`，请求层放 `src/api/`，自动生成的接口类型放 `src/generated/`（只由生成命令写入，不手改）。
-- 测试文件的位置、导入别名、格式化规则由作者在 W01 确定后写进本节。
+- 测试文件的位置、导入别名、格式化规则由作者在 W01 确定，助手在验收后写进本节。
 
 ## 约定
 
-- 提交信息用中文，格式 `类型: 说明`（feat、fix、docs、chore、refactor、test），说明写"为什么"；W01 起由 commitlint 检查。
+- 提交信息用中文，格式 `类型: 说明`，类型用约定式提交的类型（feat、fix、docs、refactor、test、chore、ci 等），说明写"为什么"；W01-S3 起由 commitlint 检查。
 - 每个功能一个分支，经 PR 合并到 main；不在 main 上直接写功能代码。
 - 代码注释用中文，说明"为什么"，不复述代码做了什么。

@@ -15,7 +15,7 @@
 
 ## 二、方法
 
-每周一个迭代，每个迭代交付在浏览器里能用的功能。迭代内拆成不超过 2 小时的小步，每一步都是"页面 + 接口 + 表"的一小片。
+每周一个迭代，每个迭代是一个竖切：从页面到数据库切出一条完整的薄片，页面、接口、表一起交付，结束时在浏览器里能用，而不是先把某一层全部做完。迭代内拆成不超过 2 小时的小步。
 
 每个迭代按公司研发流程走：
 
@@ -45,7 +45,7 @@
 | 后端 | NestJS 12（Express 适配器）+ TypeORM + PostgreSQL 18；Zod 校验（W2）；@nestjs/jwt + Argon2id（W3）；Swagger 生成 OpenAPI |
 | 工程 | pnpm monorepo（`apps/web`、`apps/api`）；oxlint + Prettier；husky + lint-staged + commitlint；Vitest + Supertest；Playwright（W11）；功能分支 + GitHub PR |
 
-- 版本：Node 26.12.1（26.x 于 2026-10-28 进入 LTS，10-21 发布了修复高危漏洞的安全更新）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
+- 版本：Node 26.12.1（10-21 的安全更新，修复了几个高危漏洞；按 Node 发布计划，26.x 的首个 LTS 版本 10-28 发布，满一天后升级到它，之后只用 LTS 版本）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
 - Linter 用 oxlint：Nest CLI 12 和 create-vite 9 的官方模板默认都用它，沿用默认，不再另配 ESLint。
 - 明确不做：微服务、Kubernetes、GraphQL、Kafka/RabbitMQ、第二套 ORM、SSR。面试会问这些概念，放进对应周的面试题，讲清"为什么本项目不需要"。
 
@@ -66,7 +66,7 @@
 | W11 | GitHub Actions、Playwright、安全加固 | 手动检查容易忘；改了 A 坏了 B 没人发现 |
 | W12 | 结构化输出、RAG（pgvector）、流式输出 | 填单太繁琐；制度文档没人看 |
 
-本机现状（2026-10-27 核对）：PostgreSQL 18.6、Redis 8.10.2 已通过 Homebrew 安装；没有 Docker 和 Nginx（W8 用 Homebrew 装 Nginx，W10 装 OrbStack 或 Colima）。Node 由 Volta 管理；Volta 已于 2025-11 停止维护，而且启动不了新版 pnpm，所以只用它固定 Node，pnpm 版本交给 `packageManager`；以后换成 mise 不影响项目。
+本机现状（2026-10-27 核对）：PostgreSQL 18.6、Redis 8.10.2 已通过 Homebrew 安装；没有 Docker 和 Nginx（W8 用 Homebrew 装 Nginx，W10 装 OrbStack 或 Colima）。Node 由 Volta 管理；Volta 已于 2025-11 停止维护，而且启动不了新版 pnpm，所以只用它固定 Node，pnpm 版本交给 `packageManager`；以后换成 mise 或 fnm，只需在项目里加一个 `.node-version` 文件。
 
 几个关键选择的倾向（由作者在对应那周写成 ADR）：
 
@@ -135,7 +135,7 @@
 数据
 
 - [ ] [W1] 表结构只通过 migration 修改，应用启动不自动改表
-- [ ] [W2] 金额用整数分，时间存带时区的类型
+- [ ] [W2] 金额用整数分；时间点存带时区的类型，纯日期（如费用发生日期）用 `date`
 - [ ] [W2] 多表写入放在同一个事务里
 - [ ] [W2] 数据库约束兜底：非空、唯一、外键、检查约束
 - [ ] [W5] 并发更新有保护（乐观锁或条件更新）
