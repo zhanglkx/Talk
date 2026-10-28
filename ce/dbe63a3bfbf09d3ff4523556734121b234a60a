@@ -1,0 +1,28 @@
+.kiro/steering/tech.md
+  s_16d393f386a2bb::t_93223f003995a4 3-10
+docs/plan/W01-从零跑通.md
+  s_16d393f386a2bb::t_cd7d7d00b30f55 4
+  s_16d393f386a2bb::t_d7c0af65debe76 111
+  s_16d393f386a2bb::t_31285147fd4590 185
+docs/plan/README.md
+  s_16d393f386a2bb::t_41998177ccb947 191
+  s_16d393f386a2bb::t_c1ac4162d25c62 4
+.kiro/steering/structure.md
+  s_16d393f386a2bb::t_2e5b85ef6ce339 3,5-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "cedbe63a3bfbf09d3ff4523556734121b234a60a",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
