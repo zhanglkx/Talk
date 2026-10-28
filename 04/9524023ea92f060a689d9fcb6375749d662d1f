@@ -1,0 +1,89 @@
+apps/web/src/main.tsx
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-10
+.gitattributes
+  s_16d393f386a2bb::t_c86ba7f95bbc7d 1-2
+.npmrc
+  s_16d393f386a2bb::t_6a45fe918ba987 1-3
+apps/web/tsconfig.app.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-26
+apps/api/test/app.e2e-spec.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-29
+apps/web/package.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1,3,5-12,15-16,24-25
+  s_16d393f386a2bb::t_9aa19818cd3c69 2,4,13-14,17-23
+apps/web/index.html
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-13
+apps/web/src/assets/vite.svg
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1
+apps/web/src/App.css
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-184
+apps/web/src/index.css
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-111
+apps/web/tsconfig.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-7
+apps/api/vitest.config.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-12
+apps/web/tsconfig.node.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-23
+apps/api/src/app.controller.spec.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-22
+apps/api/src/main.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-8
+apps/web/vite.config.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-7
+apps/api/src/app.service.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-8
+apps/api/tsconfig.build.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-8
+.gitignore
+  s_16d393f386a2bb::t_b9a3fb0713fddb 6-7,12
+apps/web/src/assets/react.svg
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1
+apps/api/src/app.module.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-10
+apps/api/tsconfig.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-23
+pnpm-workspace.yaml
+  s_16d393f386a2bb::t_2280cbf58fd41e 1-5
+apps/api/.prettierrc
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-4
+package.json
+  s_16d393f386a2bb::t_f9155da2f84eb0 1-16
+apps/api/package.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1,3-9,11-21,27-28,43-44
+  s_16d393f386a2bb::t_0efff08339db0e 2,10,22-26,29-42
+apps/api/nest-cli.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-8
+apps/web/public/favicon.svg
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1
+pnpm-lock.yaml
+  s_16d393f386a2bb::t_af81eebfdc1c65 1-3264
+apps/web/.oxlintrc.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-8
+apps/api/.oxlintrc.json
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-10
+apps/api/vitest.config.e2e.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-10
+apps/web/src/App.tsx
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-122
+apps/web/public/icons.svg
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-24
+apps/api/src/app.controller.ts
+  s_16d393f386a2bb::t_8d69f1b9ab137b 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "049524023ea92f060a689d9fcb6375749d662d1f",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
