@@ -3,7 +3,7 @@
 - 周期：2026-10-28 ～ 2027-01-31，13 周，每周约 15 小时
 - 当前：W01 进行中（S1、S2 完成，下一步 S3），见 [W01-从零跑通](W01-从零跑通.md)
 - 业务需求：[PRD](../PRD.md)；模板与 Review 清单：[templates.md](templates.md)；架构决策：[ADR](../adr/README.md)
-- 上一版（个人账本、后端先行）已归档为 tag `v1-backend-first`。可以用 `git show v1-backend-first:<路径>` 对照思路，但不复制其中的代码。
+- 上一版（个人账本、后端先行）已归档为 tag `v1-backend-first`；`main` 的历史从新项目开始，旧提交只在这个 tag 里。可以用 `git show v1-backend-first:<路径>` 对照思路，但不复制其中的代码。
 
 ## 一、目标
 
@@ -23,9 +23,11 @@
 2. 技术设计（作者写，约 20 分钟）：按[模板](templates.md#1-技术设计模板)回答表、接口、规则、并发等问题；评审通过后再写代码。
 3. 编码（作者写）：前端、后端、测试、配置都由作者写。先查官方文档，卡住超过 15 分钟再要提示。
 4. 自测：在浏览器里逐条走验收标准，跑检查命令。
-5. Code Review（助手做）：看分支相对 main 的 diff，按清单给出「必须改 / 建议改 / 可讨论」。
+5. Code Review（助手做）：看自上次 Review 以来的提交，按清单给出「必须改 / 建议改 / 可讨论」。
 6. 重构（作者改）：改到没有"必须改"。
 7. 复盘（作者写，约 15 分钟）：用自己的话写下 3 个核心概念，回答当周的面试题，助手批改。
+
+代码直接在 main 上小步提交并推送，不用功能分支和 PR：个人项目怎么简单怎么来。企业里一般是功能分支 + PR + Code Review，面试时能讲清两者的取舍即可。
 
 三级提示，要到哪一级由作者决定：L1 方向（查哪份文档、用哪个概念或 API）→ L2 思路（步骤或伪代码）→ L3 片段（只给卡住那一处的几行代码）。
 
@@ -43,7 +45,7 @@
 |---|---|
 | 前端 | React 19 + TypeScript + Vite；Ant Design 6；React Router；TanStack Query（服务端数据）；Zustand（登录态与权限）；axios（请求层、无感刷新）；ECharts（W9）；接口类型由 OpenAPI 生成（W2 起） |
 | 后端 | NestJS 12（Express 适配器）+ TypeORM + PostgreSQL 18；Zod 校验（W2）；@nestjs/jwt + Argon2id（W3）；Swagger 生成 OpenAPI |
-| 工程 | pnpm monorepo（`apps/web`、`apps/api`）；oxlint + Prettier；husky + lint-staged + commitlint；Vitest + Supertest；Playwright（W11）；功能分支 + GitHub PR |
+| 工程 | pnpm monorepo（`apps/web`、`apps/api`）；oxlint + Prettier；husky + lint-staged + commitlint；Vitest + Supertest；Playwright（W11）；直接在 main 上提交 |
 
 - 版本：Node 26.12.1（10-21 的安全更新，修复了几个高危漏洞；按 Node 发布计划，26.x 的首个 LTS 版本 10-28 发布，满一天后升级到它，之后只用 LTS 版本）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
 - Linter 用 oxlint：Nest CLI 12 和 create-vite 9 的官方模板默认都用它，沿用默认，不再另配 ESLint。
@@ -91,7 +93,7 @@
 | W8 多实例与 Redis | Nginx 后面跑两个 API 实例，功能依然正确；超时未审批自动提醒 | Nginx 反向代理与负载均衡、无状态服务、Redis、定时任务与分布式锁 | SSE 断线重连 |
 | W9 报表与性能 | 统计看板；百万数据下依然快；异步导出 Excel | SQL 聚合与时区、EXPLAIN 与索引、缓存与失效、BullMQ + worker | ECharts 看板、导出进度 |
 | W10 容器化与网关 | 一条命令起整套系统；HTTPS 访问；附件存对象存储 | Docker 多阶段构建、compose 编排、Nginx 网关、对象存储、部署时单独执行 migration | 生产构建、静态资源缓存 |
-| W11 质量与 CI/CD | 每个 PR 自动检查；主流程端到端测试；越权请求全部被拦 | GitHub Actions、分层测试、安全加固（安全头、CORS、依赖扫描） | Playwright 端到端测试 |
+| W11 质量与 CI/CD | 每次推送自动检查；主流程端到端测试；越权请求全部被拦 | GitHub Actions、分层测试、安全加固（安全头、CORS、依赖扫描） | Playwright 端到端测试 |
 | W12 AI | 拍发票自动预填明细；制度问答带引用、流式输出 | 结构化输出、RAG + pgvector、超时 / 限流 / 成本控制、防提示注入 | 流式渲染、确认后才填入 |
 | W13 收官 | 文档、架构图、演示视频；模拟面试 | 按企业级清单整体复查 | — |
 
@@ -122,7 +124,7 @@
 - [ ] [W1] 一条命令启动前后端；README 写清从克隆到打开页面的步骤
 - [ ] [W1] oxlint + Prettier；提交前自动检查；提交信息符合约定
 - [ ] [W1] 配置从环境变量读取并在启动时校验；仓库里没有密钥和连接串，有 `.env.example`
-- [ ] [W1] 每个功能一个分支，经 PR 合并
+- [ ] [W1] 小步提交：一次提交只做一件事，提交信息说明为什么
 
 接口
 
@@ -169,7 +171,7 @@
 
 - [ ] [W2] 关键业务规则有单元测试，主要接口有连真实数据库的集成测试
 - [ ] [W10] Docker 多阶段构建；compose 一键启动整套环境；Nginx 网关（HTTPS、gzip、反向代理、负载均衡）
-- [ ] [W11] 主流程有端到端测试；每个 PR 在 CI 中自动 lint、类型检查、测试、构建
+- [ ] [W11] 主流程有端到端测试；每次推送到 main 都在 CI 中自动 lint、类型检查、测试、构建
 
 前端
 
