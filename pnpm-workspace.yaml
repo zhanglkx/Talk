@@ -1,0 +1,5 @@
+packages:
+  - 'apps/*'
+
+# pnpm add 时写入精确版本（不带 ^、~），保证每台机器装到同一个版本
+saveExact: true
