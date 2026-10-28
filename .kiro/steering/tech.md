@@ -1,11 +1,15 @@
 # 技术约束
 
-核对于 2026-10-28（W01-S2）。命令和版本以各 `package.json` 为准。
+核对于 2026-10-28（W01-S3）。命令和版本以各 `package.json` 为准。
 
 ## 命令实情
 
 - `pnpm dev`：并行启动 API（`nest start --watch`，端口 3000，目前监听所有网卡，S4 改为只监听 127.0.0.1）和 Web（Vite，端口 5173，监听 `[::1]`）。
-- `pnpm build`：两端构建；`pnpm test`：API 单元测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm -r run lint`：两端 oxlint（S3 再加根目录的 lint 命令）。
+- `pnpm build`：两端构建；`pnpm test`：API 单元测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试。
+- `pnpm lint`：两端 oxlint；`pnpm format` / `pnpm format:check`：用根目录 Prettier 格式化 / 检查整个仓库。
+- 提交钩子（husky，`core.hooksPath=.husky/_`）：`pre-commit` 跑 lint-staged（Prettier 只改暂存的文件；暂存了某一端的 TS 文件就对那一端跑一次完整的 oxlint）；`commit-msg` 跑 commitlint；`prepare-commit-msg` 删除 Cursor 自动加的 `Co-authored-by` 行。
+- 根 `package.json` 的 `prepare` 脚本会在 `pnpm install` 时运行 `husky`。W10 做 Docker 生产镜像时不装开发依赖，要用 `HUSKY=0` 或 `--ignore-scripts` 跳过它，否则安装会失败。
+- 本机的 `git` 命令经过 git-ai 代理：它会给每个提交写 AI 记录（`refs/notes/ai`），推送时同步到 GitHub。公司定制版不允许排除仓库，作者已接受这些记录留在远程。钩子照常执行（S3 已验证）。
 - 依赖从 npm 官方源安装（项目 `.npmrc`）；本机全局的 npm/pnpm 源是公司内部镜像，不要让项目依赖它。
 - 全局的 `nest` 命令是 Volta 装的 11.0.12，版本不对，不要用；用项目里的 CLI：`pnpm --filter @xinghe/api exec nest ...`。
 
