@@ -10,13 +10,15 @@
 
 ## 版本
 
-- Node 26.12.1，由 Volta 管理并在根 `package.json` 固定；26.x 于 2026-10-28 进入 LTS。
-- TypeScript 两端统一 6.0.3：Nest CLI 依赖 6.0.x，openapi-typescript 不支持 7.x，create-vite 模板默认带的 7.x 要改掉。升级 TypeScript 前先核对这两个工具。
-- 依赖写精确版本（不带 `^`、`~`），安装当天取最新稳定版。
+- Node 26.12.1：根 `package.json` 的 `engines` 声明，本机用 Volta 的 `volta.node` 固定；26.x 于 2026-10-28 进入 LTS。
+- pnpm 12.15.0：写在根 `package.json` 的 `packageManager`，pnpm 自动下载并切换。不要 `volta pin pnpm`：Volta 已于 2025-11 停止维护，2.0.2 启动不了 pnpm 12.15.0（缺 `bin/pnpm.cjs`）。
+- TypeScript 两端统一 6.0.3：Nest CLI 依赖 6.0.x，openapi-typescript 不支持 7.x，create-vite 模板默认带的 7.x 要改掉。openapi-typescript 7.13.0 声明的 peer 是 `typescript ^5`，配 6.0.3 能正常生成类型，只有 peer 依赖警告。升级 TypeScript 前先核对这两个工具。
+- 依赖写精确版本（不带 `^`、`~`），取最新稳定版；不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`），`pnpm-workspace.yaml` 里不留 `minimumReleaseAgeExclude`。确实要立刻装新版本（例如紧急安全修复）时才显式加例外，并在提交信息里写明原因。
+- 以上组合 2026-10-27 已在临时目录验证：两端构建、lint 和 Nest 自带的测试通过。
 
 ## 按周引入，不提前
 
-- 本机已有：PostgreSQL 18.6、Redis 8.10.2（Homebrew）。开发库 `expense_dev`。
+- 本机已有：PostgreSQL 18.6、Redis 8.10.2（Homebrew）；Node 26.12.1 已用 `volta fetch` 下载（全局默认仍是 26.11.1）。开发库 `expense_dev`（UTF8）。
 - W8 起：Redis 接入、Nginx（Homebrew 安装）、两个 API 实例。W9 起：BullMQ 与独立 worker 进程。W10 起：Docker（OrbStack 或 Colima）+ compose、对象存储。W11 起：GitHub Actions。W12 起：pgvector 与模型 API。
 - 要提前用到这些时，先说明原因并经作者同意。
 

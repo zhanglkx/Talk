@@ -1,7 +1,7 @@
 # 星河报销｜13 周全栈学习计划
 
 - 周期：2026-10-28 ～ 2027-01-31，13 周，每周约 15 小时
-- 当前：W01 未开始，见 [W01-从零跑通](W01-从零跑通.md)
+- 当前：W01 进行中（S1 完成，下一步 S2），见 [W01-从零跑通](W01-从零跑通.md)
 - 业务需求：[PRD](../PRD.md)；模板与 Review 清单：[templates.md](templates.md)；架构决策：[ADR](../adr/README.md)
 - 上一版（个人账本、后端先行）已归档为 tag `v1-backend-first`。可以用 `git show v1-backend-first:<路径>` 对照思路，但不复制其中的代码。
 
@@ -45,7 +45,7 @@
 | 后端 | NestJS 12（Express 适配器）+ TypeORM + PostgreSQL 18；Zod 校验（W2）；@nestjs/jwt + Argon2id（W3）；Swagger 生成 OpenAPI |
 | 工程 | pnpm monorepo（`apps/web`、`apps/api`）；oxlint + Prettier；husky + lint-staged + commitlint；Vitest + Supertest；Playwright（W11）；功能分支 + GitHub PR |
 
-- 版本：Node 26.12.1（26.x 于 2026-10-28 进入 LTS，10-21 发布了修复高危漏洞的安全更新）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，安装当天取最新稳定版。
+- 版本：Node 26.12.1（26.x 于 2026-10-28 进入 LTS，10-21 发布了修复高危漏洞的安全更新）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
 - Linter 用 oxlint：Nest CLI 12 和 create-vite 9 的官方模板默认都用它，沿用默认，不再另配 ESLint。
 - 明确不做：微服务、Kubernetes、GraphQL、Kafka/RabbitMQ、第二套 ORM、SSR。面试会问这些概念，放进对应周的面试题，讲清"为什么本项目不需要"。
 
@@ -66,7 +66,7 @@
 | W11 | GitHub Actions、Playwright、安全加固 | 手动检查容易忘；改了 A 坏了 B 没人发现 |
 | W12 | 结构化输出、RAG（pgvector）、流式输出 | 填单太繁琐；制度文档没人看 |
 
-本机现状（2026-10-27 核对）：PostgreSQL 18.6、Redis 8.10.2 已通过 Homebrew 安装；Node 由 Volta 管理；没有 Docker 和 Nginx（W8 用 Homebrew 装 Nginx，W10 装 OrbStack 或 Colima）。
+本机现状（2026-10-27 核对）：PostgreSQL 18.6、Redis 8.10.2 已通过 Homebrew 安装；没有 Docker 和 Nginx（W8 用 Homebrew 装 Nginx，W10 装 OrbStack 或 Colima）。Node 由 Volta 管理；Volta 已于 2025-11 停止维护，而且启动不了新版 pnpm，所以只用它固定 Node，pnpm 版本交给 `packageManager`；以后换成 mise 不影响项目。
 
 几个关键选择的倾向（由作者在对应那周写成 ADR）：
 
@@ -188,7 +188,7 @@
 
 | 周 | 目标窗口 | 状态 | 实际完成 | 实际小时 | 证据 |
 |---|---|---|---|---|---|
-| W1 | 10-28 ～ 11-08 | 未开始 | | | |
+| W1 | 10-28 ～ 11-08 | 进行中 | | | S1 完成（10-27） |
 | W2 | 11-09 ～ 11-15 | 未开始 | | | |
 | W3 | 11-16 ～ 11-22 | 未开始 | | | |
 | W4 | 11-23 ～ 11-29 | 未开始 | | | |
