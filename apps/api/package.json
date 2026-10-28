@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start --watch",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
@@ -35,7 +34,6 @@
     "@vitest/coverage-v8": "5.0.5",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
-    "prettier": "3.9.10",
     "supertest": "7.3.1",
     "typescript": "6.0.3",
     "vite": "8.3.5",

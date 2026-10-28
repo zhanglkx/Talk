@@ -1,0 +1,6 @@
+# 删除 Cursor 的 AI 助手自动追加的 Co-authored-by 行，提交只算仓库作者（原先在 .git/hooks 里，启用 husky 后要放在这里才会执行）
+msg_file="$1"
+[ -n "$msg_file" ] || exit 0
+tmp=$(mktemp)
+grep -v -E '^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<cursoragent@cursor\.com>[[:space:]]*$' "$msg_file" > "$tmp" || true
+mv "$tmp" "$msg_file"
