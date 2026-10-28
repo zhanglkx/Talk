@@ -1,9 +1,11 @@
 # 目录与代码约定
 
-## 现有结构（2026-10-27 核对）
+## 现有结构（2026-10-28 核对，W01-S2 之后）
 
-- 仓库目前只有文档：`docs/PRD.md`（业务需求）、`docs/plan/`（`README.md` 总计划、`templates.md` 模板与 Review 清单、`WNN-主题.md` 每周迭代文档）、`docs/adr/`（架构决策记录）。
-- 代码从 W01 开始由作者在 `apps/api`、`apps/web` 从零搭建；每周验收后按实际结构更新本节。
+- 根目录：`package.json`（`dev`、`build`、`test` 三个脚本，`packageManager`、`engines`、`volta`）、`pnpm-workspace.yaml`（`apps/*`，`saveExact: true`）、`pnpm-lock.yaml`（全仓库唯一一份）、`.npmrc`（固定 npm 官方源）、`.gitattributes`（统一 LF 换行）。
+- `apps/api`（包名 `@xinghe/api`）：Nest CLI 12 脚手架，ESM；`src/` 里只有脚手架自带的 `AppModule`、`AppController`、`AppService`；单元测试 `src/*.spec.ts`，端到端测试 `test/*.e2e-spec.ts`。
+- `apps/web`（包名 `@xinghe/web`）：create-vite 9 的 `react-ts` 模板，页面还是模板自带的示例页。
+- 文档：`docs/PRD.md`（业务需求）、`docs/plan/`（`README.md` 总计划、`templates.md` 模板与 Review 清单、`WNN-主题.md` 每周迭代文档）、`docs/adr/`（架构决策记录）。每周验收后按实际结构更新本节。
 
 ## 目标结构（W01 之后按实际调整）
 

@@ -1,6 +1,13 @@
 # 技术约束
 
-核对于 2026-10-27。W01 完成前仓库里还没有代码；之后命令和版本以各 `package.json` 为准，并在本文件补充「命令实情」。
+核对于 2026-10-28（W01-S2）。命令和版本以各 `package.json` 为准。
+
+## 命令实情
+
+- `pnpm dev`：并行启动 API（`nest start --watch`，端口 3000，目前监听所有网卡，S4 改为只监听 127.0.0.1）和 Web（Vite，端口 5173，监听 `[::1]`）。
+- `pnpm build`：两端构建；`pnpm test`：API 单元测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm -r run lint`：两端 oxlint（S3 再加根目录的 lint 命令）。
+- 依赖从 npm 官方源安装（项目 `.npmrc`）；本机全局的 npm/pnpm 源是公司内部镜像，不要让项目依赖它。
+- 全局的 `nest` 命令是 Volta 装的 11.0.12，版本不对，不要用；用项目里的 CLI：`pnpm --filter @xinghe/api exec nest ...`。
 
 ## 技术栈
 
