@@ -1,0 +1,47 @@
+docs/plan/templates.md
+  s_16d393f386a2bb::t_548bcdaf19624f 51
+  s_16d393f386a2bb::t_ee1acca645e4bb 46
+  s_16d393f386a2bb::t_2236be9f346121 37
+.kiro/steering/tech.md
+  s_16d393f386a2bb::t_33c2016e5e3342 13
+  s_16d393f386a2bb::t_0e2b2488994b6d 30
+.cursor/rules/commit-chinese.mdc
+  s_16d393f386a2bb::t_a19f0d169c70a0 2,6,8-9,14,16
+docs/PRD.md
+  s_16d393f386a2bb::t_778002eb87fa4b 3,24-26,29-31,41-43,51-53,64-66,70-71,80-82,86,88,99,106-108
+docs/plan/W01-从零跑通.md
+  s_16d393f386a2bb::t_4de4bc7e1f3898 5,13-14,38,49-53,58,61,75,89,91,97,99-101,104,106-111,116,129,140,142-144,147,149-150,154-158,169,186,191
+docs/plan/README.md
+  s_16d393f386a2bb::t_e58b26648d5753 18
+  s_16d393f386a2bb::t_c28b2500f014b7 138
+  s_16d393f386a2bb::t_e962ec00793bd1 48
+  s_16d393f386a2bb::t_bbe68540c54398 69
+.kiro/steering/structure.md
+  s_16d393f386a2bb::t_ce74991f213acc 12
+  s_16d393f386a2bb::t_710a034b47ed1c 16
+README.md
+  s_16d393f386a2bb::t_770664f3686f4e 9
+.gitignore
+  s_16d393f386a2bb::t_8d2eccf958b957 10-12
+.kiro/steering/collaboration.md
+  s_16d393f386a2bb::t_0cb4aa2794915e 7
+  s_16d393f386a2bb::t_65840516324abe 28
+.cursor/rules/collaboration.mdc
+  s_16d393f386a2bb::t_7257510f303d58 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "c8ed19e6921b8e2e8e85cf9586da760a9056f175",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
