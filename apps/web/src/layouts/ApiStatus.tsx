@@ -22,7 +22,7 @@ export default function ApiStatus() {
         const health = await fetchHealth(controller.signal)
         if (!controller.signal.aborted) setStatus(health.status === 'ok' ? 'online' : 'offline')
       } catch {
-        // 组件卸载时会主动取消请求（开发模式下 StrictMode 会故意卸载再挂载一次），这不代表 API 不可用
+        // 组件卸载时会主动取消请求，这不代表 API 不可用
         if (!controller.signal.aborted) setStatus('offline')
       }
     }
