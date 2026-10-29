@@ -16,6 +16,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* "@/" 指向 src/，和 vite.config.ts 的 resolve.alias 保持一致：这里给类型检查和编辑器用，Vite 打包只认它自己的 alias */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

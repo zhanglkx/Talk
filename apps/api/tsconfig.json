@@ -18,6 +18,11 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node"],
+    // "@/" 指向 src/。Node 运行时不认识这个别名：nest build / nest start 编译时会把它改写成相对路径，
+    // Vitest 通过 resolve.tsconfigPaths 读取这里。TypeScript 6 已弃用 baseUrl，paths 相对本文件解析
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   }
 }
