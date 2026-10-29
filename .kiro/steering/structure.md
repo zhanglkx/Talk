@@ -1,17 +1,17 @@
 # 目录与代码约定
 
-## 现有结构（2026-10-29 核对，W01-S3 之后，导入已改用 `@/` 别名）
+## 现有结构（2026-10-29 核对，W01-S4 之后）
 
-- 根目录：`package.json`（`dev`、`build`、`test`、`lint`、`format`、`format:check`、`prepare` 脚本，`packageManager`、`engines`、`volta`）、`pnpm-workspace.yaml`（`apps/*`，`saveExact: true`）、`pnpm-lock.yaml`（全仓库唯一一份）、`.npmrc`（固定 npm 官方源）、`.gitattributes`（统一 LF 换行）、`.prettierrc.json` 与 `.prettierignore`、`lint-staged.config.mjs`、`commitlint.config.mjs`、`.husky/`（`pre-commit`、`commit-msg`、`prepare-commit-msg` 三个钩子）。
-- `apps/api`（包名 `@xinghe/api`）：Nest CLI 12 脚手架，ESM；`src/` 里只有脚手架自带的 `AppModule`、`AppController`、`AppService`；单元测试 `src/*.spec.ts`，端到端测试 `test/*.e2e-spec.ts`；lint 配置 `.oxlintrc.json`。
-- `apps/web`（包名 `@xinghe/web`）：create-vite 9 的 `react-ts` 模板，页面还是模板自带的示例页；lint 配置 `.oxlintrc.json`。
+- 根目录：`package.json`（`dev`、`build`、`test`、`lint`、`typecheck`、`format`、`format:check`、`prepare` 脚本，`packageManager`、`engines`、`volta`）、`pnpm-workspace.yaml`（`apps/*`，`saveExact: true`）、`pnpm-lock.yaml`（全仓库唯一一份）、`.npmrc`（固定 npm 官方源）、`.gitattributes`（统一 LF 换行）、`.prettierrc.json` 与 `.prettierignore`、`lint-staged.config.mjs`、`commitlint.config.mjs`、`.husky/`（`pre-commit`、`commit-msg`、`prepare-commit-msg` 三个钩子）。
+- `apps/api`（包名 `@xinghe/api`）：Nest 12，ESM。`src/main.ts`（启动，只监听 127.0.0.1）、`src/configure-app.ts`（`configureApp`：全局前缀 `api/v1`，启动和测试共用）、`src/app.module.ts`（根模块）、`src/health/`（`HealthModule`、`HealthController`：`GET /api/v1/health`）。单元测试和被测文件放在一起（`src/health/health.controller.spec.ts`），端到端测试放 `test/*.e2e-spec.ts`；lint 配置 `.oxlintrc.json`（类型感知，禁止 `any`）。
+- `apps/web`（包名 `@xinghe/web`）：React 19 + Vite 8 + Ant Design 6。`src/main.tsx`（入口，引入 Ant Design 的重置样式）、`src/App.tsx`（`ConfigProvider` 中文）、`src/layouts/`（`AppLayout` 页面框架：顶栏、侧边栏、内容区；`ApiStatus` 连接状态）、`src/api/health.ts`（健康检查请求，类型暂时手写）。`vite.config.ts` 配了 `@` 别名和 `/api` 代理；lint 配置 `.oxlintrc.json`（禁止 `any`）。
 - 文档：`docs/PRD.md`（业务需求）、`docs/plan/`（`README.md` 总计划、`templates.md` 模板与 Review 清单、`WNN-主题.md` 每周迭代文档）、`docs/adr/`（架构决策记录）。每周验收后按实际结构更新本节。
 
 ## 目标结构（W01 之后按实际调整）
 
 - `apps/api/`：业务模块放 `src/modules/<模块>/`（module、controller、service、entity、请求与响应的 schema）；横切逻辑放 `src/common/`；配置放 `src/config/`；migration 放 `src/database/migrations/`。
-- `apps/web/`：页面放 `src/pages/`，按业务拆 `src/features/`，请求层放 `src/api/`，自动生成的接口类型放 `src/generated/`（只由生成命令写入，不手改）。
-- 测试文件的位置由作者在 W01 确定，助手在验收后写进本节；导入别名已定，见下面「约定」。
+- `apps/web/`：页面放 `src/pages/`，按业务拆 `src/features/`，页面框架放 `src/layouts/`，请求层放 `src/api/`，自动生成的接口类型放 `src/generated/`（只由生成命令写入，不手改）。
+- 测试位置沿用 Nest 模板的做法（单元测试放在被测文件旁边，e2e 放 `test/`），作者想改可以在 W02 写测试前提出；导入别名见下面「约定」。
 
 ## 约定
 
