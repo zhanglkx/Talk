@@ -1,0 +1,21 @@
+apps/web/.oxlintrc.json
+  s_16d393f386a2bb::t_a1e6f4a5da1822 6-7
+apps/api/.oxlintrc.json
+  s_16d393f386a2bb::t_afe84fd8e59d57 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "9c9c42d843824f335fcb350469d9e05eb9ecaf05",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
