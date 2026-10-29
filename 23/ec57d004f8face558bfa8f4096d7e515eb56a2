@@ -1,0 +1,33 @@
+pnpm-lock.yaml
+  s_16d393f386a2bb::t_499fb63fe912c7 245-247,310-344,362-368,469-474,885-1167,1426-1431,1529-1532,1548-1550,1599-1601,1839-1841,1877-1879,2163-2165,2211-2213,2281-2283,2312-2314,2323-2326,2568-2613,2628-2631,2761-2764,3073-3420,3620-3676,3767-3768,3782-3783,3823-3824,4062-4063,4086-4089,4343-4344,4401-4404,4482-4483,4515-4516,4539
+apps/web/src/App.tsx
+  s_16d393f386a2bb::t_82fb649aa0e49a 1-3,5-6,8-10
+apps/web/src/layouts/AppLayout.tsx
+  s_16d393f386a2bb::t_84b893a218863e 1-52
+apps/web/src/api/health.ts
+  s_16d393f386a2bb::t_7ae125bb236298 1-14
+apps/web/package.json
+  s_16d393f386a2bb::t_93430e6d5b38da 13
+apps/web/src/main.tsx
+  s_16d393f386a2bb::t_1137d48a96872b 3-4
+apps/web/index.html
+  s_16d393f386a2bb::t_47d1494956376b 2,7
+apps/web/src/layouts/ApiStatus.tsx
+  s_16d393f386a2bb::t_f39da6e0eb3144 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "23ec57d004f8face558bfa8f4096d7e515eb56a2",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
