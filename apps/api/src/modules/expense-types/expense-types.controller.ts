@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Get, Param, Patch, Post, HttpStatus } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common'
 import { ExpenseTypesService } from '@/modules/expense-types/expense-types.service.js'
 import type {
   CreateExpenseTypeDto,
@@ -14,8 +14,8 @@ export class ExpenseTypesController {
     return this.expenseTypesService.findAll()
   }
 
+  // 新建了一条记录，用 POST 默认的 201 Created
   @Post()
-  @HttpCode(HttpStatus.OK)
   async create(@Body() createExpenseTypeDto: CreateExpenseTypeDto) {
     return this.expenseTypesService.create(createExpenseTypeDto)
   }
@@ -25,6 +25,7 @@ export class ExpenseTypesController {
     return this.expenseTypesService.update(id, updateExpenseTypeDto)
   }
 
+  // 停用、启用改的是已有的记录，没有新建，所以返回 200，而不是 POST 默认的 201
   @Post(':id/disable')
   @HttpCode(HttpStatus.OK)
   async disable(@Param('id') id: string) {
