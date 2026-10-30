@@ -2,15 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { App } from 'supertest/types.js'
-import { AppModule } from '@/app.module.js'
 import { configureApp } from '@/configure-app.js'
+import { HealthModule } from '@/health/health.module.js'
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication<App>
 
   beforeEach(async () => {
+    // 只导入要测的 HealthModule：健康检查用不到数据库，测试也就不依赖数据库和本机的 .env。
+    // 导入整个 AppModule 的话，TypeORM 会先去连库，数据库连不上时这个测试会超时失败
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [HealthModule],
     }).compile()
 
     app = moduleFixture.createNestApplication()
