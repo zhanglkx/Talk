@@ -1,12 +1,15 @@
 # 技术约束
 
-核对于 2026-10-29（W01-S4）。命令和版本以各 `package.json` 为准。
+核对于 2026-10-30（W01-S6）。命令和版本以各 `package.json` 为准。
 
 ## 命令实情
 
 - `pnpm dev`：并行启动 API（`nest start --watch`，只监听 `127.0.0.1:3000`，接口前缀 `/api/v1`，健康检查 `GET /api/v1/health`）和 Web（Vite，端口 5173，监听 `[::1]`，把 `/api` 开头的请求转发到 `http://127.0.0.1:3000`）。按 Ctrl+C 会两端一起停；要单独停一端，就分两个终端运行 `pnpm --filter @xinghe/api dev`、`pnpm --filter @xinghe/web dev`。
 - API 只监听 127.0.0.1 写死在 `main.ts`。W10 放进 Docker 后，容器外访问不到只监听 127.0.0.1 的服务，要改成从配置读取监听地址（容器里用 0.0.0.0）。
 - `pnpm build`：两端构建；`pnpm test`：API 单元测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm typecheck`：两端完整类型检查。API 的 `nest build` 跳过测试文件，Vitest 运行时也不检查类型，所以测试文件里的类型错误只有 `pnpm typecheck` 能发现。
+- 数据库配置：API 从当前目录的 `.env` 读取 `DATABASE_URL`（用 pnpm 脚本启动时就是 `apps/api/.env`，照 `apps/api/.env.example` 复制，不提交），已有的环境变量优先；`src/config/environment.ts` 在启动时校验，缺少、为空都会立刻报错退出。API 启动时要连上数据库：PostgreSQL 没开时 `@nestjs/typeorm` 默认重试 10 次、每次隔 3 秒，大约 30 秒后才放弃，这期间健康检查也访问不了。
+- migration 脚本（在仓库根目录运行）：`pnpm --filter @xinghe/api run migration:generate src/database/migrations/<名称>`（按实体和数据库的差异生成）、`migration:create src/database/migrations/<名称>`（生成空文件，手写 TypeORM 比较不出来的改动，例如约束改名）、`migration:run`、`migration:revert`（回滚最近执行的一个）、`migration:show`。除 `migration:create` 外都会先构建，再加载 `dist/database/data-source.js`。TypeORM 命令行工具本身不读 `.env`，脚本用 `node --env-file-if-exists=.env` 读取；数据源缺少 `DATABASE_URL` 时直接报错，不会连到别的库。
+- e2e 测试 `test/health.e2e-spec.ts` 只导入 `HealthModule`，不连数据库，也不需要 `.env`。
 - Web 打包后的 JS 约 540 kB（gzip 后约 180 kB，主要是 Ant Design），Vite 会提示单个文件超过 500 kB。这是预期的，W10 做路由懒加载和拆包时处理。
 - `pnpm lint`：两端 oxlint（两端都禁止 `any`）；`pnpm format` / `pnpm format:check`：用根目录 Prettier 格式化 / 检查整个仓库。
 - 提交钩子（husky，`core.hooksPath=.husky/_`）：`pre-commit` 跑 lint-staged（Prettier 只改暂存的文件；暂存了某一端的 TS 文件就对那一端跑一次完整的 oxlint）；`commit-msg` 跑 commitlint；`prepare-commit-msg` 删除 Cursor 自动加的 `Co-authored-by` 行。
@@ -38,7 +41,7 @@
 ## 硬约束
 
 - 单体：一个 NestJS API（W9 起可另有一个共用代码的 worker 进程）+ 一个 React Web。不拆微服务，不引入 GraphQL、Kafka/RabbitMQ、第二套 ORM、SSR。
-- 一个 PostgreSQL 数据库；表结构只通过 migration 修改，`synchronize: false`，应用启动时不自动执行 migration。
+- 一个 PostgreSQL 数据库；表结构只通过 migration 修改，`synchronize: false`，应用启动时不自动执行 migration。已提交、推送的 migration 不再修改，要改就新写一个往前改。
 - 配置从环境变量读取并在启动时校验；`.env` 不提交，提供 `.env.example`。
 - 金额以分为单位的整数存储，计算不用浮点数。时间点（如提交、打款时间）存 `timestamptz`；只有日期的字段（如费用发生日期）存 `date`，不要存成 `timestamptz`，否则按另一个时区显示时会差一天。按天、按月的边界一律按 Asia/Shanghai 计算。
 - 身份只来自服务端校验过的 token；前端传来的用户 ID、角色、总金额都不可信。权限在后端校验，前端只控制显示。
