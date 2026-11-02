@@ -4,6 +4,9 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
+  "volta": {
+    "extends": "../../package.json"
+  },
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
