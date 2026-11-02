@@ -1,0 +1,48 @@
+docs/plan/W01-从零跑通.md
+  s_16d393f386a2bb::t_6fe15137f1fa0b 247
+  s_16d393f386a2bb::t_255c887ce32b07 290
+  s_16d393f386a2bb::t_61499a2b0bda29 319-330,335-336,338-344
+  s_2d7960739aee60::t_6fecd98ffa9a2e 361
+  s_2d7960739aee60::t_ba795654990030 360
+  s_16d393f386a2bb::t_e72229c4f8fc2d 119
+  s_16d393f386a2bb::t_807b6f6c8d7bd0 345
+  s_16d393f386a2bb::t_819ba8b140c103 4
+  s_2d7960739aee60::t_de6f252cb7436c 254-261
+  s_16d393f386a2bb::t_92877e916ef4ea 108-110
+  s_16d393f386a2bb::t_c9320a21594a15 331-334,337
+docs/plan/README.md
+  s_16d393f386a2bb::t_f430b10ee02cc2 193
+  s_2d7960739aee60::t_0d3bf8f51ee614 4
+.kiro/steering/structure.md
+  s_16d393f386a2bb::t_953512a8b33c9d 11
+  s_2d7960739aee60::t_ef2d8310ddda2e 3
+  s_16d393f386a2bb::t_f846597230a691 28-29
+  s_16d393f386a2bb::t_20313783c29932 5
+.kiro/steering/tech.md
+  s_16d393f386a2bb::t_f4faed7a1b956f 3
+  s_2d7960739aee60::t_d54e93c8969f7f 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "9060469f8db811f7dd87e15a8192b5be42de682e",
+  "prompts": {},
+  "sessions": {
+    "s_16d393f386a2bb": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_dcbb2fe3-066a-4a8b-919a-af1504a22854",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    },
+    "s_2d7960739aee60": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_df4f6b6e-90b4-4f1b-8f2d-57f68508cee3",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
