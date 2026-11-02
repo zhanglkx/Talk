@@ -1,6 +1,6 @@
 # 技术约束
 
-核对于 2026-10-30（W01-S6）。命令和版本以各 `package.json` 为准。
+核对于 2026-10-30（W01-S7）。命令和版本以各 `package.json` 为准。
 
 ## 命令实情
 
@@ -26,7 +26,7 @@
 
 ## 版本
 
-- Node 26.12.1：根 `package.json` 的 `engines` 声明，本机用 Volta 的 `volta.node` 固定。按 Node 发布计划，26.x 的首个 LTS 版本 2026-10-28 发布；发布满一天后升级到它（改 `engines` 和 `volta.node` 两处），之后只用 LTS 版本。
+- Node 26.12.1：根 `package.json` 的 `engines` 声明，本机用 Volta 的 `volta.node` 固定。两个应用的 `package.json` 用 `"volta": { "extends": "../../package.json" }` 继承这个设置：Volta 只看离当前目录最近的 `package.json`，不加的话在 `apps/api`、`apps/web` 里直接运行 `node` 会用全局默认的 26.11.1。按 Node 发布计划，26.x 的首个 LTS 版本 2026-10-28 发布；发布满一天后升级到它（改 `engines` 和 `volta.node` 两处），之后只用 LTS 版本。11-02 核对 `nodejs.org/dist/index.json`：首个 LTS 是 26.13.0（代号 Lithium，10-28 发布），还没有升级，等作者确认。
 - pnpm 12.15.0：写在根 `package.json` 的 `packageManager`，pnpm 自动下载并切换。不要 `volta pin pnpm`：Volta 已于 2025-11 停止维护，2.0.2 启动不了 pnpm 12.15.0（缺 `bin/pnpm.cjs`）。
 - TypeScript 两端统一 6.0.3：Nest CLI 依赖 6.0.x，openapi-typescript 不支持 7.x，create-vite 模板默认带的 7.x 要改掉。openapi-typescript 7.13.0 声明的 peer 是 `typescript ^5`，配 6.0.3 能正常生成类型，只有 peer 依赖警告。升级 TypeScript 前先核对这两个工具。
 - 依赖写精确版本（不带 `^`、`~`），取最新稳定版；不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`），`pnpm-workspace.yaml` 里不留 `minimumReleaseAgeExclude`。确实要立刻装新版本（例如紧急安全修复）时才显式加例外，并在提交信息里写明原因。
