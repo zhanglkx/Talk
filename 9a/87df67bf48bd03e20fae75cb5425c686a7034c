@@ -1,0 +1,21 @@
+apps/web/package.json
+  s_14d3e14ef12bf2::t_60a5885aa7e992 19-20
+apps/web/src/layouts/AppLayout.tsx
+  s_14d3e14ef12bf2::t_1dccc2c928a6c2 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.51-trip",
+  "base_commit_sha": "9a87df67bf48bd03e20fae75cb5425c686a7034c",
+  "prompts": {},
+  "sessions": {
+    "s_14d3e14ef12bf2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1a17f-c270-7031-95bd-de446451c354",
+        "model": "unknown"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
