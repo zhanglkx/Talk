@@ -1,0 +1,36 @@
+docs/plan/W01-从零跑通.md
+  s_4dcdddae1cd34b::t_8ebb49899c66d6 271
+  s_4dcdddae1cd34b::t_efd9e1a53361ff 277-278
+  s_4dcdddae1cd34b::t_15438ee63e2671 398
+  s_4dcdddae1cd34b::t_a984513bddcd76 268
+  s_4dcdddae1cd34b::t_aab5d3e39c342e 281
+  s_4dcdddae1cd34b::t_8403360fc18e59 4
+  s_4dcdddae1cd34b::t_f297d6a5917cea 263
+  s_4dcdddae1cd34b::t_3a8225f1eca50e 295-296
+.kiro/steering/structure.md
+  s_4dcdddae1cd34b::t_5d706dab092fac 13
+  s_4dcdddae1cd34b::t_48022b269bfbf6 3
+  s_4dcdddae1cd34b::t_40c316b0b1e260 34
+  s_4dcdddae1cd34b::t_956b72b148859e 25
+.kiro/steering/tech.md
+  s_4dcdddae1cd34b::t_e545c7ca0b91cb 14
+docs/plan/README.md
+  s_4dcdddae1cd34b::t_7b08c2f2ccdc49 193
+  s_4dcdddae1cd34b::t_2ec6b41c45e74a 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "3a4a9b57aaebcb728ea3a647424fdf792465c147",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
