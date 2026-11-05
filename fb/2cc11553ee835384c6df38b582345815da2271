@@ -1,0 +1,30 @@
+apps/web/src/pages/ExpenseTypesPage.tsx
+  s_4dcdddae1cd34b::t_f47b550cfebb47 1-2,10
+pnpm-lock.yaml
+  s_4dcdddae1cd34b::t_7007b723bde33e 257-259,1328-1339,3738-3745
+apps/web/src/main.tsx
+  s_4dcdddae1cd34b::t_f52b15a4dcc518 3,7,10-14
+apps/web/src/features/expense-types/hooks.ts
+  s_4dcdddae1cd34b::t_bdcb9b9797141d 1-13
+apps/web/src/features/expense-types/ExpenseTypesTable.tsx
+  s_4dcdddae1cd34b::t_f39903b5a40d8d 1-12,14-48
+  s_4dcdddae1cd34b::t_eb032855e39700 13
+apps/web/src/query-client.ts
+  s_4dcdddae1cd34b::t_7171b6fa481bce 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "fb2cc11553ee835384c6df38b582345815da2271",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
