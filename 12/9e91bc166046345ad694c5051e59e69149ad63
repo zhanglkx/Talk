@@ -1,0 +1,21 @@
+apps/web/src/features/expense-types/hooks.ts
+  s_4dcdddae1cd34b::t_ca2c0c75bb7835 32-48
+apps/web/src/features/expense-types/ExpenseTypeRowActions.tsx
+  s_4dcdddae1cd34b::t_5e9aacddd7bcab 1,3,11-20,22-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "129e91bc166046345ad694c5051e59e69149ad63",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
