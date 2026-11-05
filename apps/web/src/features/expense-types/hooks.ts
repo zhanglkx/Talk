@@ -25,8 +25,11 @@ export function useSaveExpenseType() {
     mutationFn: ({ id, input }: SaveExpenseTypeVariables) =>
       id === undefined ? expenseTypesApi.create(input) : expenseTypesApi.update(id, input),
     // 不在前端手动改列表，而是让缓存失效、重新向后端要一份：去空格、默认启用、排序都以后端为准。
-    // 返回 Promise，等列表取回后这次保存才算完成，弹窗关闭时列表已经是新数据
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: expenseTypesKey }),
+    // 成功和失败之后都刷新：超时或响应在路上丢了时，服务端可能已经写进库。
+    // 不返回 Promise：保存结果一出来就关弹窗或提示错误，不用等列表取回（取回失败还会重试几秒）
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: expenseTypesKey })
+    },
   })
 }
 
@@ -42,7 +45,11 @@ export function useSetExpenseTypeEnabled() {
   return useMutation({
     mutationFn: ({ id, enabled }: SetExpenseTypeEnabledVariables) =>
       enabled ? expenseTypesApi.enable(id) : expenseTypesApi.disable(id),
-    // 等列表取回后才结束加载，按钮从「停用」换成「启用」时不会先闪回旧状态
+    // 成功时返回 Promise：等列表取回才结束加载，按钮从「停用」换成「启用」时不会先闪回旧状态
     onSuccess: () => queryClient.invalidateQueries({ queryKey: expenseTypesKey }),
+    // 失败也刷新（服务端可能已经改了），但不等列表取回，错误提示马上出现
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: expenseTypesKey })
+    },
   })
 }
