@@ -34,7 +34,7 @@ export default function ExpenseTypesPage() {
         key={formState.key}
         open={formState.open}
         record={formState.record}
-        // 关闭时保留 record，弹窗关闭动画期间标题和内容不会跳成「新增」
+        // 关闭只改 open、不清 record：下次打开会换 key 重新挂载，不需要在这里清理
         onClose={() => setFormState((prev) => ({ ...prev, open: false }))}
       />
     </>

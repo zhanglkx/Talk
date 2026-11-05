@@ -50,7 +50,8 @@ export default function ExpenseTypesTable({ onEdit }: ExpenseTypesTableProps) {
         dataSource={data}
         // 顺序用接口返回的（后端按创建时间倒序），表格不再排序；类型很少，不分页
         pagination={false}
-        loading={isPending || (failedWithoutData && isFetching)}
+        // v5 在没有数据时重新请求会把状态重置回 pending，所以「首次失败后点重试」也由 isPending 显示加载
+        loading={isPending}
         locale={failedWithoutData ? { emptyText: '加载失败' } : undefined}
       />
     </Flex>
