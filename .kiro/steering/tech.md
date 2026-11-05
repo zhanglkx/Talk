@@ -1,17 +1,17 @@
 # 技术约束
 
-核对于 2026-10-30（W01-S7）。命令和版本以各 `package.json` 为准。
+核对于 2026-10-30（W01-S7）；11-05 升级 Node 后复核了版本、构建、测试和两端启动。命令和版本以各 `package.json` 为准。
 
 ## 命令实情
 
-- `pnpm dev`：并行启动 API（`nest start --watch`，只监听 `127.0.0.1:3000`，接口前缀 `/api/v1`，健康检查 `GET /api/v1/health`）和 Web（Vite，端口 5173，监听 `[::1]`，把 `/api` 开头的请求转发到 `http://127.0.0.1:3000`）。按 Ctrl+C 会两端一起停；要单独停一端，就分两个终端运行 `pnpm --filter @xinghe/api dev`、`pnpm --filter @xinghe/web dev`。
+- `pnpm dev`：并行启动 API（`nest start --watch`，只监听 `127.0.0.1:3000`，接口前缀 `/api/v1`，健康检查 `GET /api/v1/health`）和 Web（Vite，端口 5173，监听 `localhost` 解析出的第一个地址，由系统决定：10-28 是 `[::1]`，11-05 是 `127.0.0.1`；把 `/api` 开头的请求转发到 `http://127.0.0.1:3000`）。按 Ctrl+C 会两端一起停；要单独停一端，就分两个终端运行 `pnpm --filter @xinghe/api dev`、`pnpm --filter @xinghe/web dev`。
 - API 只监听 127.0.0.1 写死在 `main.ts`。W10 放进 Docker 后，容器外访问不到只监听 127.0.0.1 的服务，要改成从配置读取监听地址（容器里用 0.0.0.0）。
 - `pnpm build`：两端构建；`pnpm test`：API 单元测试 + Web 请求层契约测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm typecheck`：两端完整类型检查，包含测试。API 的 `nest build` 跳过测试文件，Vitest 运行时也不检查类型，所以测试文件里的类型错误只有 `pnpm typecheck` 能发现。
 - 11-03 按作者要求提前完成 W2 的请求层：`apps/web/src/api/http/` 统一 Axios 1.21.0 实例、`/api/v1`、10 秒超时、AbortSignal 与 ApiError；业务 API 按目录维护，页面从 `@/api/index.ts` 调用。已迁移健康检查并提供报销类型 5 个方法。Web 的 Vitest 5.0.5 契约测试使用本机临时端口的虚构 HTTP 服务，不依赖 `.env` 或业务数据库；`pnpm --filter @xinghe/web test` 可单独运行。模块边界由 oxlint 检查，规范见根目录 `AGENTS.md`。
 - 数据库配置：API 从当前目录的 `.env` 读取 `DATABASE_URL`（用 pnpm 脚本启动时就是 `apps/api/.env`，照 `apps/api/.env.example` 复制，不提交），已有的环境变量优先；`src/config/environment.ts` 在启动时校验，缺少、为空都会立刻报错退出。API 启动时要连上数据库：PostgreSQL 没开时 `@nestjs/typeorm` 默认重试 10 次、每次隔 3 秒，大约 30 秒后才放弃，这期间健康检查也访问不了。
 - migration 脚本（在仓库根目录运行）：`pnpm --filter @xinghe/api run migration:generate src/database/migrations/<名称>`（按实体和数据库的差异生成）、`migration:create src/database/migrations/<名称>`（生成空文件，手写 TypeORM 比较不出来的改动，例如约束改名）、`migration:run`、`migration:revert`（回滚最近执行的一个）、`migration:show`。除 `migration:create` 外都会先构建，再加载 `dist/database/data-source.js`。TypeORM 命令行工具本身不读 `.env`，脚本用 `node --env-file-if-exists=.env` 读取；数据源缺少 `DATABASE_URL` 时直接报错，不会连到别的库。
 - e2e 测试 `test/health.e2e-spec.ts` 只导入 `HealthModule`，不连数据库，也不需要 `.env`。
-- Web 打包后的 JS 约 540 kB（gzip 后约 180 kB，主要是 Ant Design），Vite 会提示单个文件超过 500 kB。这是预期的，W10 做路由懒加载和拆包时处理。
+- Web 打包后的 JS 约 675 kB（gzip 后约 224 kB，11-05 实测，大头是 Ant Design），Vite 会提示单个文件超过 500 kB。这是预期的，W10 做路由懒加载和拆包时处理。
 - `pnpm lint`：两端 oxlint（两端都禁止 `any`）；`pnpm format` / `pnpm format:check`：用根目录 Prettier 格式化 / 检查整个仓库。
 - 提交钩子（husky，`core.hooksPath=.husky/_`）：`pre-commit` 跑 lint-staged（Prettier 只改暂存的文件；暂存了某一端的 TS 文件就对那一端跑一次完整的 oxlint）；`commit-msg` 跑 commitlint；`prepare-commit-msg` 删除 Cursor 自动加的 `Co-authored-by` 行。
 - 根 `package.json` 的 `prepare` 脚本会在 `pnpm install` 时运行 `husky`。W10 做 Docker 生产镜像时不装开发依赖，要用 `HUSKY=0` 或 `--ignore-scripts` 跳过它，否则安装会失败。
@@ -27,15 +27,15 @@
 
 ## 版本
 
-- Node 26.12.1：根 `package.json` 的 `engines` 声明，本机用 Volta 的 `volta.node` 固定。两个应用的 `package.json` 用 `"volta": { "extends": "../../package.json" }` 继承这个设置：Volta 只看离当前目录最近的 `package.json`，不加的话在 `apps/api`、`apps/web` 里直接运行 `node` 会用全局默认的 26.11.1。按 Node 发布计划，26.x 的首个 LTS 版本 2026-10-28 发布；发布满一天后升级到它（改 `engines` 和 `volta.node` 两处），之后只用 LTS 版本。11-02 核对 `nodejs.org/dist/index.json`：首个 LTS 是 26.13.0（代号 Lithium，10-28 发布），还没有升级，等作者确认。
+- Node 26.13.0：26.x 的首个 LTS 版本（代号 Lithium，10-28 发布），11-05 经作者同意从 26.12.1 升级；之后只用 LTS 版本，升级前在 `nodejs.org/dist/index.json` 里确认目标版本的 `lts` 字段不是 `false`。根 `package.json` 的 `engines` 声明版本，本机用 Volta 的 `volta.node` 固定，升级时两处一起改。两个应用的 `package.json` 用 `"volta": { "extends": "../../package.json" }` 继承这个设置：Volta 只看离当前目录最近的 `package.json`，不加的话在 `apps/api`、`apps/web` 里直接运行 `node` 会用 Volta 的全局默认版本（11-05 是 20.11.1）。
 - pnpm 12.15.0：写在根 `package.json` 的 `packageManager`，pnpm 自动下载并切换。不要 `volta pin pnpm`：Volta 已于 2025-11 停止维护，2.0.2 启动不了 pnpm 12.15.0（缺 `bin/pnpm.cjs`）。
 - TypeScript 两端统一 6.0.3：Nest CLI 依赖 6.0.x，openapi-typescript 不支持 7.x，create-vite 模板默认带的 7.x 要改掉。openapi-typescript 7.13.0 声明的 peer 是 `typescript ^5`，配 6.0.3 能正常生成类型，只有 peer 依赖警告。升级 TypeScript 前先核对这两个工具。
 - 依赖写精确版本（不带 `^`、`~`），取最新稳定版；不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`），`pnpm-workspace.yaml` 里不留 `minimumReleaseAgeExclude`。确实要立刻装新版本（例如紧急安全修复）时才显式加例外，并在提交信息里写明原因。
-- 以上组合 2026-10-27 已在临时目录验证：两端构建、lint 和 Nest 自带的测试通过。
+- 以上组合 2026-10-27 已在临时目录验证（当时 Node 是 26.12.1）：两端构建、lint 和 Nest 自带的测试通过。11-05 升级到 26.13.0 后在仓库里复测：format:check、lint、typecheck、build 和全部测试通过，API 和 Vite 都能启动。
 
 ## 按周引入，不提前
 
-- 本机已有：PostgreSQL 18.6、Redis 8.10.2（Homebrew）；Node 26.12.1 已用 `volta fetch` 下载（全局默认仍是 26.11.1）。开发库 `expense_dev`（UTF8）。
+- 本机已有：PostgreSQL 18.6、Redis 8.10.2（Homebrew）；Node 26.13.0 已用 `volta fetch` 下载（不改 Volta 的全局默认版本）。开发库 `expense_dev`（UTF8）。
 - W8 起：Redis 接入、Nginx（Homebrew 安装）、两个 API 实例。W9 起：BullMQ 与独立 worker 进程。W10 起：Docker（OrbStack 或 Colima）+ compose、对象存储。W11 起：GitHub Actions。W12 起：pgvector 与模型 API。
 - 要提前用到这些时，先说明原因并经作者同意。
 

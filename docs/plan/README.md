@@ -47,7 +47,7 @@
 | 后端 | NestJS 12（Express 适配器）+ TypeORM + PostgreSQL 18；Zod 校验（W2）；@nestjs/jwt + Argon2id（W3）；Swagger 生成 OpenAPI |
 | 工程 | pnpm monorepo（`apps/web`、`apps/api`）；oxlint + Prettier；husky + lint-staged + commitlint；Vitest + Supertest；Playwright（W11）；直接在 main 上提交 |
 
-- 版本：Node 26.12.1（10-21 的安全更新，修复了几个高危漏洞；按 Node 发布计划，26.x 的首个 LTS 版本 10-28 发布，满一天后升级到它，之后只用 LTS 版本）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
+- 版本：Node 26.13.0（26.x 的首个 LTS 版本，10-28 发布；11-05 从 26.12.1 升级，之后只用 LTS 版本）；pnpm 12.15.0（写在根 `package.json` 的 `packageManager`，由 pnpm 自动切换）；TypeScript 两端统一 6.0.3（Nest CLI 依赖 6.0.x，openapi-typescript 还不支持 7.x，而 create-vite 模板默认带 7.x）；依赖写精确版本，取最新稳定版，但不绕过 pnpm 默认一天的发布冷却期（`minimumReleaseAge`）。这套组合已于 10-27 在临时目录验证（当时 Node 是 26.12.1，11-05 升级后在仓库里复测通过）：两端构建、lint 和 Nest 自带的测试通过，openapi-typescript 能生成类型（只有 peer 依赖警告）。
 - Linter 用 oxlint：Nest CLI 12 和 create-vite 9 的官方模板默认都用它，沿用默认，不再另配 ESLint。
 - 明确不做：微服务、Kubernetes、GraphQL、Kafka/RabbitMQ、第二套 ORM、SSR。面试会问这些概念，放进对应周的面试题，讲清"为什么本项目不需要"。
 
