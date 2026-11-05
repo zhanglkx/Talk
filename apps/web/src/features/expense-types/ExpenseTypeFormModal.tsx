@@ -33,6 +33,7 @@ export default function ExpenseTypeFormModal({ open, record, onClose }: ExpenseT
   function handleFinish(values: FormValues) {
     // 确认按钮加载中点不了，但在输入框里按回车仍会提交表单，这里再拦一次
     if (save.isPending) return
+    // 说明也去掉首尾空格：只填了空格的说明存成空字符串，和"不填"是同一种写法，列表才会显示「—」
     const input = { name: values.name.trim(), description: (values.description ?? '').trim() }
     save.mutate(
       { id: record?.id, input },
