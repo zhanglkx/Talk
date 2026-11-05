@@ -11,7 +11,7 @@
 - 数据库配置：API 从当前目录的 `.env` 读取 `DATABASE_URL`（用 pnpm 脚本启动时就是 `apps/api/.env`，照 `apps/api/.env.example` 复制，不提交），已有的环境变量优先；`src/config/environment.ts` 在启动时校验，缺少、为空都会立刻报错退出。API 启动时要连上数据库：PostgreSQL 没开时 `@nestjs/typeorm` 默认重试 10 次、每次隔 3 秒，大约 30 秒后才放弃，这期间健康检查也访问不了。
 - migration 脚本（在仓库根目录运行）：`pnpm --filter @xinghe/api run migration:generate src/database/migrations/<名称>`（按实体和数据库的差异生成）、`migration:create src/database/migrations/<名称>`（生成空文件，手写 TypeORM 比较不出来的改动，例如约束改名）、`migration:run`、`migration:revert`（回滚最近执行的一个）、`migration:show`。除 `migration:create` 外都会先构建，再加载 `dist/database/data-source.js`。TypeORM 命令行工具本身不读 `.env`，脚本用 `node --env-file-if-exists=.env` 读取；数据源缺少 `DATABASE_URL` 时直接报错，不会连到别的库。
 - e2e 测试 `test/health.e2e-spec.ts` 只导入 `HealthModule`，不连数据库，也不需要 `.env`。
-- Web 打包后的 JS 约 675 kB（gzip 后约 224 kB，11-05 实测，大头是 Ant Design），Vite 会提示单个文件超过 500 kB。这是预期的，W10 做路由懒加载和拆包时处理。
+- Web 打包后的 JS 约 1,158 kB（gzip 后约 375 kB，11-05 加上报销类型页面后实测，大头是 Ant Design 的表格、表单、弹窗等组件），Vite 会提示单个文件超过 500 kB。这是预期的，W10 做路由懒加载和拆包时处理。
 - `pnpm lint`：两端 oxlint（两端都禁止 `any`）；`pnpm format` / `pnpm format:check`：用根目录 Prettier 格式化 / 检查整个仓库。
 - 提交钩子（husky，`core.hooksPath=.husky/_`）：`pre-commit` 跑 lint-staged（Prettier 只改暂存的文件；暂存了某一端的 TS 文件就对那一端跑一次完整的 oxlint）；`commit-msg` 跑 commitlint；`prepare-commit-msg` 删除 Cursor 自动加的 `Co-authored-by` 行。
 - 根 `package.json` 的 `prepare` 脚本会在 `pnpm install` 时运行 `husky`。W10 做 Docker 生产镜像时不装开发依赖，要用 `HUSKY=0` 或 `--ignore-scripts` 跳过它，否则安装会失败。
