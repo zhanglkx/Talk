@@ -1,0 +1,27 @@
+apps/web/src/api/http/errors.ts
+  s_14d3e14ef12bf2::t_50aedca1e8793e 3-80
+apps/web/test/http.spec.ts
+  s_14d3e14ef12bf2::t_50aedca1e8793e 148-244
+apps/web/package.json
+  s_14d3e14ef12bf2::t_c994385991c584 32-33
+apps/web/.oxlintrc.json
+  s_14d3e14ef12bf2::t_50aedca1e8793e 12-79
+apps/web/src/api/expense-types/index.ts
+  s_14d3e14ef12bf2::t_50aedca1e8793e 21-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "038d27c92b9c238602e5d4b52f49ea9556e00f7a",
+  "prompts": {},
+  "sessions": {
+    "s_14d3e14ef12bf2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1a17f-c270-7031-95bd-de446451c354",
+        "model": "unknown"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
