@@ -29,3 +29,20 @@ export function useSaveExpenseType() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: expenseTypesKey }),
   })
 }
+
+export interface SetExpenseTypeEnabledVariables {
+  id: string
+  enabled: boolean
+}
+
+// 每一行各调用一次这个 Hook：同一个 mutation 只记得最后一次调用的参数，
+// 各行用自己的实例，快速先后操作两行时，两行都能正确显示自己的加载状态
+export function useSetExpenseTypeEnabled() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, enabled }: SetExpenseTypeEnabledVariables) =>
+      enabled ? expenseTypesApi.enable(id) : expenseTypesApi.disable(id),
+    // 等列表取回后才结束加载，按钮从「停用」换成「启用」时不会先闪回旧状态
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: expenseTypesKey }),
+  })
+}
