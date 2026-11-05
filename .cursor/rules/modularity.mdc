@@ -1,0 +1,13 @@
+---
+description: 所有代码按职责模块化，前端请求统一通过业务 API 与公共 HTTP 层
+alwaysApply: true
+---
+
+# 模块化与请求边界
+
+- 遵守根目录 `AGENTS.md` 的模块化约定，适用于全部新增与修改代码。
+- 先复用已有模块；通用能力集中维护，业务模块提供清楚的公共接口，保持单一职责。
+- 前端调用链：页面 / Hook → `@/api/index.ts` 中的业务 API → `api/http` 公共客户端。
+- 接口路径和类型集中在 `apps/web/src/api/<业务>/`；页面不直接调用 Axios、fetch 或 XMLHttpRequest。
+- 公共请求层不依赖 UI 和路由；错误提示与页面跳转由调用方处理。
+- 后端按 Controller / Service / Repository 分工；避免跨层调用和重复实现。

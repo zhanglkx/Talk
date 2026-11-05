@@ -6,7 +6,8 @@
 
 - `pnpm dev`：并行启动 API（`nest start --watch`，只监听 `127.0.0.1:3000`，接口前缀 `/api/v1`，健康检查 `GET /api/v1/health`）和 Web（Vite，端口 5173，监听 `[::1]`，把 `/api` 开头的请求转发到 `http://127.0.0.1:3000`）。按 Ctrl+C 会两端一起停；要单独停一端，就分两个终端运行 `pnpm --filter @xinghe/api dev`、`pnpm --filter @xinghe/web dev`。
 - API 只监听 127.0.0.1 写死在 `main.ts`。W10 放进 Docker 后，容器外访问不到只监听 127.0.0.1 的服务，要改成从配置读取监听地址（容器里用 0.0.0.0）。
-- `pnpm build`：两端构建；`pnpm test`：API 单元测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm typecheck`：两端完整类型检查。API 的 `nest build` 跳过测试文件，Vitest 运行时也不检查类型，所以测试文件里的类型错误只有 `pnpm typecheck` 能发现。
+- `pnpm build`：两端构建；`pnpm test`：API 单元测试 + Web 请求层契约测试；`pnpm --filter @xinghe/api run test:e2e`：API 端到端测试；`pnpm typecheck`：两端完整类型检查，包含测试。API 的 `nest build` 跳过测试文件，Vitest 运行时也不检查类型，所以测试文件里的类型错误只有 `pnpm typecheck` 能发现。
+- 11-03 按作者要求提前完成 W2 的请求层：`apps/web/src/api/http/` 统一 Axios 1.21.0 实例、`/api/v1`、10 秒超时、AbortSignal 与 ApiError；业务 API 按目录维护，页面从 `@/api/index.ts` 调用。已迁移健康检查并提供报销类型 5 个方法。Web 的 Vitest 5.0.5 契约测试使用本机临时端口的虚构 HTTP 服务，不依赖 `.env` 或业务数据库；`pnpm --filter @xinghe/web test` 可单独运行。模块边界由 oxlint 检查，规范见根目录 `AGENTS.md`。
 - 数据库配置：API 从当前目录的 `.env` 读取 `DATABASE_URL`（用 pnpm 脚本启动时就是 `apps/api/.env`，照 `apps/api/.env.example` 复制，不提交），已有的环境变量优先；`src/config/environment.ts` 在启动时校验，缺少、为空都会立刻报错退出。API 启动时要连上数据库：PostgreSQL 没开时 `@nestjs/typeorm` 默认重试 10 次、每次隔 3 秒，大约 30 秒后才放弃，这期间健康检查也访问不了。
 - migration 脚本（在仓库根目录运行）：`pnpm --filter @xinghe/api run migration:generate src/database/migrations/<名称>`（按实体和数据库的差异生成）、`migration:create src/database/migrations/<名称>`（生成空文件，手写 TypeORM 比较不出来的改动，例如约束改名）、`migration:run`、`migration:revert`（回滚最近执行的一个）、`migration:show`。除 `migration:create` 外都会先构建，再加载 `dist/database/data-source.js`。TypeORM 命令行工具本身不读 `.env`，脚本用 `node --env-file-if-exists=.env` 读取；数据源缺少 `DATABASE_URL` 时直接报错，不会连到别的库。
 - e2e 测试 `test/health.e2e-spec.ts` 只导入 `HealthModule`，不连数据库，也不需要 `.env`。

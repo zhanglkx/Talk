@@ -4,6 +4,83 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
-    "typescript/no-explicit-any": "error"
-  }
+    "typescript/no-explicit-any": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["axios", "axios/**"],
+            "message": "Axios 只在 api/http 中使用，业务代码调用统一 API 模块。"
+          }
+        ]
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      { "name": "fetch", "message": "请求统一通过 @/api/index.ts 的业务 API 发起。" },
+      { "name": "XMLHttpRequest", "message": "请求统一通过 @/api/index.ts 的业务 API 发起。" }
+    ],
+    "no-restricted-properties": [
+      "error",
+      { "object": "window", "property": "fetch", "message": "请调用统一业务 API。" },
+      { "object": "globalThis", "property": "fetch", "message": "请调用统一业务 API。" },
+      { "object": "window", "property": "XMLHttpRequest", "message": "请调用统一业务 API。" },
+      { "object": "globalThis", "property": "XMLHttpRequest", "message": "请调用统一业务 API。" }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/api/http/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "react",
+                  "react/**",
+                  "react-dom",
+                  "react-dom/**",
+                  "antd",
+                  "antd/**",
+                  "react-router",
+                  "react-router/**",
+                  "@/pages/**",
+                  "@/layouts/**",
+                  "@/features/**",
+                  "@/api/index.ts"
+                ],
+                "message": "公共 HTTP 层保持独立，不依赖 UI、路由或上层业务模块。"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.tsx",
+        "src/pages/**/*.ts",
+        "src/layouts/**/*.ts",
+        "src/features/**/*.ts",
+        "src/hooks/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "group": ["axios", "axios/**"], "message": "请调用 @/api/index.ts 的业务 API。" },
+              {
+                "group": ["@/api/http/**", "**/api/http/**"],
+                "message": "页面和 Hook 通过业务 API 调用，请勿越过模块边界直接使用 HTTP 客户端。"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

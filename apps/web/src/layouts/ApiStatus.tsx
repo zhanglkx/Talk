@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge } from 'antd'
-import { fetchHealth } from '@/api/health.ts'
+import { healthApi } from '@/api/index.ts'
 
 type ConnectionStatus = 'checking' | 'online' | 'offline'
 
@@ -19,7 +19,7 @@ export default function ApiStatus() {
 
     async function check() {
       try {
-        const health = await fetchHealth(controller.signal)
+        const health = await healthApi.get({ signal: controller.signal })
         if (!controller.signal.aborted) setStatus(health.status === 'ok' ? 'online' : 'offline')
       } catch {
         // 组件卸载时会主动取消请求，这不代表 API 不可用

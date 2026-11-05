@@ -10,7 +10,7 @@
   - `src/health/`（`HealthModule`、`HealthController`：`GET /api/v1/health`）。
   - `src/modules/expense-types/`：`expense-type.entity.ts`（`ExpenseTypeEntity`，映射 `expense_types`）、module（`TypeOrmModule.forFeature` 注册实体）、controller（5 个接口的路由，路径里的 id 经过 `ParseUUIDPipe`）、service（业务规则，通过注入的 Repository 读写数据库）、`dto/create-expense-type.dto.ts`、`dto/update-expense-type.dto.ts`（新增、修改的请求体类型，本周只是 TypeScript 类型）。
   - 单元测试和被测文件放在一起（`src/health/health.controller.spec.ts`），端到端测试放 `test/*.e2e-spec.ts`（`health.e2e-spec.ts`）；`.env.example`；lint 配置 `.oxlintrc.json`（类型感知，禁止 `any`）。
-- `apps/web`（包名 `@xinghe/web`）：React 19 + Vite 8 + Ant Design 6。`src/main.tsx`（入口，引入 Ant Design 的重置样式）、`src/App.tsx`（`ConfigProvider` 中文）、`src/layouts/`（`AppLayout` 页面框架：顶栏、侧边栏、内容区；`ApiStatus` 连接状态）、`src/api/health.ts`（健康检查请求，类型暂时手写）。`vite.config.ts` 配了 `@` 别名和 `/api` 代理；lint 配置 `.oxlintrc.json`（禁止 `any`）。
+- `apps/web`（包名 `@xinghe/web`，11-03 更新）：React 19 + Vite 8 + Ant Design 6 + React Router 8。`src/main.tsx`（入口、BrowserRouter 和重置样式）、`src/App.tsx`（中文 ConfigProvider、嵌套路由和 404）、`src/layouts/`（页面框架、Outlet 和 API 连接状态）、`src/pages/ExpenseTypesPage.tsx`（待接列表）。`src/api/index.ts` 是请求模块公共入口，`http/` 统一 Axios、超时、取消和错误，`health/` 与 `expense-types/` 各自维护 API 和类型，使用方法见 `src/api/README.md`。`test/http.spec.ts` 是无需业务数据库的 HTTP 契约测试，Vitest 配置复用 Vite 别名，`tsconfig.test.json` 纳入测试类型检查。`vite.config.ts` 配了 `@` 别名和 `/api` 代理；oxlint 禁止 `any` 并检查请求模块边界。
 - 文档：`docs/PRD.md`（业务需求）、`docs/plan/`（`README.md` 总计划、`templates.md` 模板与 Review 清单、`WNN-主题.md` 每周迭代文档）、`docs/adr/`（架构决策记录）。每周验收后按实际结构更新本节。
 
 ## 目标结构（W01 之后按实际调整）
@@ -20,6 +20,8 @@
 - 测试位置沿用 Nest 模板的做法（单元测试放在被测文件旁边，e2e 放 `test/`），作者想改可以在 W02 写测试前提出；导入别名见下面「约定」。
 
 ## 约定
+
+- 全部新增与修改代码遵守根目录 `AGENTS.md` 的「模块化」约定。前端调用链固定为页面 / Hook → `@/api/index.ts` 的业务 API → `src/api/http/` 公共 HTTP 客户端，接口路径、请求与响应类型按业务目录集中维护；公共层不依赖 UI 或路由。前端请求边界已纳入 oxlint 检查。
 
 - 导入：两端的代码（包括测试）一律用 `@/` 别名导入本应用 `src/` 下的文件，不写 `./`、`../`。
   - API 是 ESM + NodeNext，别名也要带 `.js` 后缀，例如 `@/app.module.js`；Web 沿用模板写法，写真实扩展名，例如 `@/App.tsx`、`@/App.css`。
