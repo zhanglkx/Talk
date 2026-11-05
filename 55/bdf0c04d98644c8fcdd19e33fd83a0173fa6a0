@@ -1,0 +1,21 @@
+apps/web/src/pages/ExpenseTypesPage.tsx
+  s_4dcdddae1cd34b::t_85f90450ed5a3c 37
+apps/web/src/features/expense-types/ExpenseTypesTable.tsx
+  s_4dcdddae1cd34b::t_244374a5a1a988 53-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "55bdf0c04d98644c8fcdd19e33fd83a0173fa6a0",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
