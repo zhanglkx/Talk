@@ -1,0 +1,30 @@
+docs/plan/README.md
+  s_4dcdddae1cd34b::t_aa7c5e9d9556b6 50
+package.json
+  s_4dcdddae1cd34b::t_a7ffffd47d7ded 6,9
+.kiro/steering/tech.md
+  s_4dcdddae1cd34b::t_690cd57f458ae8 34
+  s_4dcdddae1cd34b::t_7aa4625f77e629 38
+  s_4dcdddae1cd34b::t_961ec696189fea 14
+  s_4dcdddae1cd34b::t_0af29a4b442b99 3
+  s_4dcdddae1cd34b::t_00b99d56d7701b 7
+  s_4dcdddae1cd34b::t_b194e0e541a355 30
+docs/plan/W01-从零跑通.md
+  s_4dcdddae1cd34b::t_e078af92050015 367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "b4f65694674bbedd5bec2db73ea383c0a34329f5",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
