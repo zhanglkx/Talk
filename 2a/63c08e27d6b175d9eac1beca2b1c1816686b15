@@ -1,0 +1,20 @@
+apps/web/src/features/expense-types/hooks.ts
+  s_4dcdddae1cd34b::t_f49f443dc12890 28-32
+  s_4dcdddae1cd34b::t_79d05e8e144c18 48,50-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "2a63c08e27d6b175d9eac1beca2b1c1816686b15",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
