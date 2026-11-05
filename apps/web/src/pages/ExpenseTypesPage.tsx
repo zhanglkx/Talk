@@ -1,4 +1,5 @@
-import { Empty, Typography } from 'antd'
+import { Typography } from 'antd'
+import ExpenseTypesTable from '@/features/expense-types/ExpenseTypesTable.tsx'
 
 export default function ExpenseTypesPage() {
   return (
@@ -6,7 +7,7 @@ export default function ExpenseTypesPage() {
       <Typography.Title level={3} style={{ marginTop: 0 }}>
         报销类型
       </Typography.Title>
-      <Empty description="报销类型功能开发中" />
+      <ExpenseTypesTable />
     </>
   )
 }
