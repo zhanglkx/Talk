@@ -1,0 +1,32 @@
+apps/web/src/pages/ExpenseTypesPage.tsx
+  s_4dcdddae1cd34b::t_e84fe7cb50d327 1-4,7-14,16-21,24-39
+apps/web/src/features/expense-types/ExpenseTypeRowActions.tsx
+  s_4dcdddae1cd34b::t_51d2a999c4c7de 1-15
+apps/web/src/features/expense-types/ExpenseTypesTable.tsx
+  s_4dcdddae1cd34b::t_21b1f26e8704c9 23
+  s_4dcdddae1cd34b::t_6abe5a47a48a47 4,7-9,11,16-22,24-30
+apps/web/src/features/expense-types/hooks.ts
+  s_4dcdddae1cd34b::t_e2124db2a487d2 1,3,15-29
+apps/web/src/features/expense-types/ExpenseTypeFormModal.tsx
+  s_4dcdddae1cd34b::t_d036a257504dec 1-106
+apps/web/src/App.tsx
+  s_4dcdddae1cd34b::t_0aa1d53e3d1ad5 1,13-19,23-26
+  s_4dcdddae1cd34b::t_caf59f1415c05b 8-10
+  s_4dcdddae1cd34b::t_21b1f26e8704c9 20-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "d83c0927d7c0dfa6b510925170729fe26951ef10",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
