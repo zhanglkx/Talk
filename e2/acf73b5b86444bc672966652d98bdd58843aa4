@@ -1,0 +1,25 @@
+docs/plan/W01-从零跑通.md
+  s_4dcdddae1cd34b::t_124b1c4c845d51 4
+  s_4dcdddae1cd34b::t_452774ad2ebcf3 261-280,282-285,287-295
+  s_4dcdddae1cd34b::t_2390727a087552 390
+  s_4dcdddae1cd34b::t_eec817c6a90012 396
+docs/plan/README.md
+  s_4dcdddae1cd34b::t_5a90cae90018f9 4
+  s_4dcdddae1cd34b::t_c673888cbf53cb 193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "e2acf73b5b86444bc672966652d98bdd58843aa4",
+  "prompts": {},
+  "sessions": {
+    "s_4dcdddae1cd34b": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_7a4cb9c1-83ed-445e-9ec2-27046e1333dc",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
