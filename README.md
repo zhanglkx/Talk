@@ -18,4 +18,30 @@
 
 ## 本地运行
 
-W01 完成后补充。
+需要 Node.js 26.13.0、pnpm 12.15.0 和运行中的本地 PostgreSQL 18。
+
+1. 克隆仓库并安装依赖。把 `YOUR_REPOSITORY_URL` 换成项目的 Git 仓库地址。
+
+   ```sh
+   git clone YOUR_REPOSITORY_URL xinghe-expense
+   cd xinghe-expense
+   pnpm install --frozen-lockfile
+   ```
+
+2. 首次运行时创建开发库并复制 API 配置模板。
+
+   ```sh
+   createdb -h 127.0.0.1 expense_dev
+   test -e apps/api/.env || cp apps/api/.env.example apps/api/.env
+   ```
+
+   模板默认连接本机的 `expense_dev`。按本机数据库的端口和认证方式配置 `apps/api/.env` 中的 `DATABASE_URL`。
+
+3. 执行数据库迁移，启动前后端。
+
+   ```sh
+   pnpm --filter @xinghe/api run migration:run
+   pnpm dev
+   ```
+
+4. 打开报销类型页面。顶栏应显示「API 已连接」，空库应显示「暂无数据」。 [报销类型](http://localhost:5173/expense-types)
