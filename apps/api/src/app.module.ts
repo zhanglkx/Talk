@@ -8,17 +8,16 @@ import { ExpenseTypesModule } from '@/modules/expense-types/expense-types.module
 
 @Module({
   imports: [
-    // 从当前目录的 .env 读取配置（用 pnpm 脚本启动时就是 apps/api/.env），已有的环境变量优先；
-    // 启动时校验，缺了立刻报错退出。isGlobal 让其他模块不用再导入 ConfigModule 就能注入 ConfigService
+    // 测试库必须由测试进程显式指定，不能从开发环境文件补全。
     ConfigModule.forRoot({
       isGlobal: true,
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
       validate: validateEnvironment,
     }),
     TypeOrmModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService<ReturnType<typeof validateEnvironment>>) => ({
         type: 'postgres',
-        // getOrThrow<string> 拿到的是 string；get 不指定类型时返回 any，类型检查对它不起作用
-        url: configService.getOrThrow<string>('DATABASE_URL'),
+        ...configService.getOrThrow('databaseConnection', { infer: true }),
         // 各模块用 TypeOrmModule.forFeature 注册的实体自动加进来，不用在这里再列一遍
         autoLoadEntities: true,
         // 表结构只通过 migration 修改：打开它，启动时会按实体自动改表，可能悄悄删列、丢数据
