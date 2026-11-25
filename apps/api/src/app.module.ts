@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { validateEnvironment } from '@/config/environment.js'
 import { HealthModule } from '@/health/health.module.js'
+import { ExpenseReportsModule } from '@/modules/expense-reports/expense-reports.module.js'
 import { ExpenseTypesModule } from '@/modules/expense-types/expense-types.module.js'
 
 @Module({
@@ -27,6 +28,7 @@ import { ExpenseTypesModule } from '@/modules/expense-types/expense-types.module
     }),
     HealthModule,
     ExpenseTypesModule,
+    ExpenseReportsModule,
   ],
 })
 export class AppModule {}
