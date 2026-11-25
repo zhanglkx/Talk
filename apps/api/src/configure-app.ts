@@ -1,8 +1,10 @@
 import type { INestApplication } from '@nestjs/common'
+import { SuccessResponseInterceptor } from '@/common/interceptors/success-response.interceptor.js'
+import { assignRequestId } from '@/common/middleware/request-id.middleware.js'
 
-// 启动（main.ts）和测试都调用这一份配置。测试不经过 main.ts，配置如果只写在 main.ts 里，
-// 测试中的应用就没有 /api/v1 前缀，测到的路由和真实运行时不一样。
-// 以后的全局管道、过滤器、拦截器也加在这里。
+// 应用启动和 e2e 测试共用这个入口，确保路由前缀和全局响应处理一致。
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api/v1')
+  app.use(assignRequestId)
+  app.useGlobalInterceptors(new SuccessResponseInterceptor())
 }

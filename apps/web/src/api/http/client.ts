@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { AxiosResponse, Method } from 'axios'
-import { normalizeApiError } from '@/api/http/errors.ts'
+import { ApiError, normalizeApiError } from '@/api/http/errors.ts'
 
 export type QueryValue = string | number | boolean | null | undefined
 export type QueryParams = Record<string, QueryValue | readonly QueryValue[]>
@@ -46,7 +46,7 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
   ): Promise<T> {
     try {
       // 逐项传递可覆盖的配置，调用方不能借助 options 更换统一地址或关闭错误检查。
-      const response = await transport.request<T, AxiosResponse<T, unknown>, unknown>({
+      const response = await transport.request<unknown, AxiosResponse<unknown, unknown>, unknown>({
         method,
         url: path,
         data,
@@ -56,7 +56,19 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
         headers: options.headers,
       })
       // Axios 对 204 返回空字符串，这里统一成 void，避免调用方对空响应做 JSON 解析。
-      return response.status === 204 ? (undefined as T) : response.data
+      if (response.status === 204) return undefined as T
+      const payload = response.data
+      if (
+        typeof payload !== 'object' ||
+        payload === null ||
+        !('data' in payload) ||
+        !('requestId' in payload) ||
+        typeof payload.requestId !== 'string' ||
+        !payload.requestId.trim()
+      ) {
+        throw new ApiError('服务器响应格式有误，请稍后重试', { kind: 'invalid-response' })
+      }
+      return payload.data as T
     } catch (error: unknown) {
       throw normalizeApiError(error)
     }

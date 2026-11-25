@@ -17,6 +17,12 @@ function json(response: ServerResponse, status: number, data: unknown) {
   response.end(JSON.stringify(data))
 }
 
+function success(response: ServerResponse, data: unknown) {
+  const requestId = 'test-request-id'
+  response.setHeader('X-Request-Id', requestId)
+  json(response, 200, { data, requestId })
+}
+
 describe('公共 HTTP 请求契约', () => {
   let baseURL: string
   let client: ReturnType<typeof createHttpClient>
@@ -28,7 +34,11 @@ describe('公共 HTTP 请求契约', () => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1')
     const path = url.pathname.replace(/^\/api\/v1/, '')
 
-    if (path === '/health') return json(response, 200, { status: 'ok' })
+    if (path === '/health') return success(response, { status: 'ok' })
+    if (path === '/expense-types') return success(response, [{ name: '差旅' }])
+    if (path === '/null-data') return success(response, null)
+    if (path === '/missing-data') return json(response, 200, { requestId: 'test-request-id' })
+    if (path === '/missing-request-id') return json(response, 200, { data: { status: 'ok' } })
     if (path === '/conflict') {
       return json(response, 409, { message: '名称已存在', error: 'Conflict', statusCode: 409 })
     }
@@ -65,7 +75,7 @@ describe('公共 HTTP 请求契约', () => {
     if (path === '/disconnect') return request.socket.destroy()
     if (path === '/slow') {
       onSlowRequest?.()
-      const timer = setTimeout(() => json(response, 200, { status: 'ok' }), 500)
+      const timer = setTimeout(() => success(response, { status: 'ok' }), 500)
       response.once('close', () => clearTimeout(timer))
       return
     }
@@ -76,7 +86,7 @@ describe('公共 HTTP 请求契约', () => {
     request.on('end', () => {
       const text = Buffer.concat(chunks).toString('utf8')
       const contentType = request.headers['content-type'] ?? ''
-      json(response, 200, {
+      success(response, {
         method: request.method,
         path: url.pathname,
         query: Object.fromEntries(url.searchParams),
@@ -120,9 +130,24 @@ describe('公共 HTTP 请求契约', () => {
     }
   })
 
-  it('拼接统一前缀并直接返回响应数据', async () => {
+  it('健康检查只返回成功响应中的业务数据', async () => {
     await expect(client.get('/health')).resolves.toEqual({ status: 'ok' })
   })
+
+  it('类型列表解包后仍是数组', async () => {
+    await expect(client.get('/expense-types')).resolves.toEqual([{ name: '差旅' }])
+  })
+
+  it('业务数据可以显式为 null', async () => {
+    await expect(client.get('/null-data')).resolves.toBeNull()
+  })
+
+  it.each(['/missing-data', '/missing-request-id'] as const)(
+    '成功响应 %s 缺少约定字段时报告响应格式错误',
+    async (path) => {
+      await expect(client.get(path)).rejects.toMatchObject({ kind: 'invalid-response' })
+    },
+  )
 
   it('正确编码查询参数，保留服务端响应结构', async () => {
     const result = await client.get<EchoResponse>('/echo', {

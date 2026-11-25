@@ -16,6 +16,7 @@
 ## 目标结构（W01 之后按实际调整）
 
 - `apps/api/`：业务模块放 `src/modules/<模块>/`（module、controller、service、entity、请求与响应的 schema）；横切逻辑放 `src/common/`；配置放 `src/config/`；migration 放 `src/database/migrations/`。
+- 全局中间件放 `src/common/middleware/`，全局拦截器放 `src/common/interceptors/`，在 `src/configure-app.ts` 统一注册。只在一个业务模块内使用的代码跟随该模块。
 - `apps/web/`：页面放 `src/pages/`，按业务拆 `src/features/`，页面框架放 `src/layouts/`，请求层放 `src/api/`，自动生成的接口类型放 `src/generated/`（只由生成命令写入，不手改）。
 - 测试位置沿用 Nest 模板的做法（单元测试放在被测文件旁边，e2e 放 `test/`），作者想改可以在 W02 写测试前提出；导入别名见下面「约定」。
 
