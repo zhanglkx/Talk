@@ -21,8 +21,12 @@ describe('HealthController (e2e)', () => {
     await app.init()
   })
 
-  it('GET /api/v1/health returns status ok', () => {
-    return request(app.getHttpServer()).get('/api/v1/health').expect(200).expect({ status: 'ok' })
+  it('GET /api/v1/health 返回健康状态，响应体与响应头的请求 ID 一致', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/health').expect(200)
+    const requestId = response.get('X-Request-Id')
+
+    expect.soft(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.body).toStrictEqual({ data: { status: 'ok' }, requestId })
   })
 
   afterEach(async () => {
