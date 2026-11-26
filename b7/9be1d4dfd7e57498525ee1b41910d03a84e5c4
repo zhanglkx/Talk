@@ -1,0 +1,21 @@
+apps/api/src/modules/expense-types/expense-types.service.ts
+  s_ae060381eceb51::t_cfa5426ba7fd7c 71
+apps/api/src/common/filters/not-found.filter.ts
+  s_ae060381eceb51::t_cfa5426ba7fd7c 8-12,15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "b79be1d4dfd7e57498525ee1b41910d03a84e5c4",
+  "prompts": {},
+  "sessions": {
+    "s_ae060381eceb51": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a216f6-b5db-7490-bc7f-65e6faa57bb5",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
