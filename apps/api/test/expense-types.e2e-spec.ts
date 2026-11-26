@@ -39,4 +39,18 @@ describe('ExpenseTypesController (e2e)', () => {
       requestId,
     })
   })
+
+  it('停用报销类型时 ID 格式错误应返回 400、校验错误码和同一个请求 ID', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/expense-types/abc/disable')
+      .expect(400)
+    const requestId = response.get('X-Request-Id')
+
+    expect(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.body).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      message: expect.stringMatching(/\S/),
+      requestId,
+    })
+  })
 })
