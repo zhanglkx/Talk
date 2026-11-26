@@ -5,9 +5,14 @@ import type { ResponseWithRequestId } from '@/common/request-context.js'
 export class NotFoundFilter implements ExceptionFilter<NotFoundException> {
   catch(exception: NotFoundException, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<ResponseWithRequestId>()
+    const body = exception.getResponse()
+    const code =
+      typeof body === 'object' && 'code' in body && typeof body.code === 'string'
+        ? body.code
+        : 'NOT_FOUND'
 
     res.status(exception.getStatus()).json({
-      code: 'NOT_FOUND',
+      code,
       message: exception.message,
       requestId: res.locals.requestId,
     })

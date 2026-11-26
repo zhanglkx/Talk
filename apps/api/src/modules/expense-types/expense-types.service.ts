@@ -68,7 +68,7 @@ export class ExpenseTypesService {
   private async findByIdOrThrow(id: string): Promise<ExpenseTypeEntity> {
     const expenseType = await this.expenseTypes.findOneBy({ id })
     if (!expenseType) {
-      throw new NotFoundException('报销类型不存在')
+      throw new NotFoundException({ code: 'EXPENSE_TYPE_NOT_FOUND', message: '报销类型不存在' })
     }
     return expenseType
   }
