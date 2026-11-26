@@ -29,6 +29,17 @@ describe('HealthController (e2e)', () => {
     expect(response.body).toStrictEqual({ data: { status: 'ok' }, requestId })
   })
 
+  it('GET /api/v1/missing 返回 404、统一错误码和同一个请求 ID', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/missing')
+    const requestId = response.get('X-Request-Id')
+
+    expect.soft(response.status).toBe(404)
+    expect.soft(response.body).toHaveProperty('code', 'NOT_FOUND')
+    expect.soft(response.body).toHaveProperty('message', expect.stringMatching(/\S/))
+    expect.soft(requestId).toEqual(expect.stringMatching(/\S/))
+    expect.soft(response.body).toHaveProperty('requestId', requestId)
+  })
+
   afterEach(async () => {
     await app.close()
   })
