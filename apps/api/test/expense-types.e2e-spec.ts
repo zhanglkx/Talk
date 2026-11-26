@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { INestApplication } from '@nestjs/common'
+import { ConflictException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import request from 'supertest'
@@ -7,14 +7,16 @@ import type { App } from 'supertest/types.js'
 import { configureApp } from '@/configure-app.js'
 import { ExpenseTypeEntity } from '@/modules/expense-types/expense-type.entity.js'
 import { ExpenseTypesModule } from '@/modules/expense-types/expense-types.module.js'
+import { ExpenseTypesService } from '@/modules/expense-types/expense-types.service.js'
 
 describe('ExpenseTypesController (e2e)', () => {
   let app: INestApplication<App>
+  const existsBy = vi.fn()
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({ imports: [ExpenseTypesModule] })
       .overrideProvider(getRepositoryToken(ExpenseTypeEntity))
-      .useValue({ findOneBy: vi.fn().mockResolvedValue(null) })
+      .useValue({ findOneBy: vi.fn().mockResolvedValue(null), existsBy })
       .compile()
 
     app = moduleFixture.createNestApplication()
@@ -24,6 +26,10 @@ describe('ExpenseTypesController (e2e)', () => {
 
   afterAll(async () => {
     await app.close()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('停用不存在的报销类型时返回 404、业务错误码和同一个请求 ID', async () => {
@@ -52,5 +58,36 @@ describe('ExpenseTypesController (e2e)', () => {
       message: expect.stringMatching(/\S/),
       requestId,
     })
+  })
+
+  it('新增同名报销类型时返回 409、重名错误码和同一个请求 ID', async () => {
+    existsBy.mockResolvedValueOnce(true)
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/expense-types')
+      .send({ name: '交通' })
+      .expect(409)
+    const requestId = response.get('X-Request-Id')
+
+    expect(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.body).toMatchObject({
+      code: 'EXPENSE_TYPE_NAME_TAKEN',
+      message: '名称已存在',
+      requestId,
+    })
+  })
+
+  it('服务抛出未指定业务码的 409 时返回通用冲突码', async () => {
+    vi.spyOn(app.get(ExpenseTypesService), 'create').mockRejectedValueOnce(
+      new ConflictException('操作冲突'),
+    )
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/expense-types')
+      .send({ name: '交通' })
+      .expect(409)
+    const requestId = response.get('X-Request-Id')
+
+    expect(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.body).toMatchObject({ code: 'CONFLICT', message: '操作冲突', requestId })
   })
 })

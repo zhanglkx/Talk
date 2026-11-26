@@ -80,7 +80,10 @@ export class ExpenseTypesService {
       excludeId === undefined ? { name } : { name, id: Not(excludeId) },
     )
     if (taken) {
-      throw new ConflictException('名称已存在')
+      throw new ConflictException({
+        code: 'EXPENSE_TYPE_NAME_TAKEN',
+        message: '名称已存在',
+      })
     }
   }
 }
