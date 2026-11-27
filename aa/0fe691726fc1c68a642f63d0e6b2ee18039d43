@@ -1,0 +1,33 @@
+docs/plan/W02-报销单草稿.md
+  s_6a18d26afab34b::t_37dc6d797b5eb5 245
+apps/api/test/expense-types.e2e-spec.ts
+  s_6a18d26afab34b::t_6f2f7b7de5c717 3,62,69-113
+apps/api/src/common/filters/request-error.filter.ts
+  s_6338a90988167f::t_7dacaf93c8442f 9,38-57,67-68
+apps/api/src/common/field-error.ts
+  s_6338a90988167f::t_4403c100704f64 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "aa0fe691726fc1c68a642f63d0e6b2ee18039d43",
+  "prompts": {},
+  "sessions": {
+    "s_6338a90988167f": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_d3b77645-54c7-46b1-9d1c-928de1533b21",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    },
+    "s_6a18d26afab34b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c2f-95d8-7043-8142-d97d587d61ec",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
