@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { ConflictException, type INestApplication } from '@nestjs/common'
+import {
+  ConflictException,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+  type INestApplication,
+} from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import request from 'supertest'
@@ -89,5 +94,32 @@ describe('ExpenseTypesController (e2e)', () => {
 
     expect(requestId).toEqual(expect.stringMatching(/\S/))
     expect(response.body).toMatchObject({ code: 'CONFLICT', message: '操作冲突', requestId })
+  })
+
+  it.each([
+    new Error('test-only-internal-detail'),
+    new InternalServerErrorException('test-only-internal-detail'),
+  ])('查询报销类型遇到 $name 时返回统一 500，并隐藏内部错误详情', async (error) => {
+    vi.spyOn(app.get(ExpenseTypesService), 'findAll').mockRejectedValueOnce(error)
+
+    const response = await request(app.getHttpServer()).get('/api/v1/expense-types').expect(500)
+    const requestId = response.get('X-Request-Id')
+
+    expect(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.text).not.toContain(error.message)
+    expect(response.body).toStrictEqual({
+      code: 'INTERNAL_ERROR',
+      message: expect.stringMatching(/\S/),
+      requestId,
+    })
+  })
+
+  it('服务暂时不可用时保留原来的 503 状态和提示', async () => {
+    vi.spyOn(app.get(ExpenseTypesService), 'findAll').mockRejectedValueOnce(
+      new ServiceUnavailableException('服务暂时不可用'),
+    )
+
+    const response = await request(app.getHttpServer()).get('/api/v1/expense-types').expect(503)
+    expect(response.body).toMatchObject({ message: '服务暂时不可用' })
   })
 })
