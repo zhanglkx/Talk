@@ -1,0 +1,19 @@
+docs/plan/W02-报销单草稿.md
+  s_6338a90988167f::t_abab313928ec39 3,238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "0502913da91d90700c32e6d04c63f2f479975e8c",
+  "prompts": {},
+  "sessions": {
+    "s_6338a90988167f": {
+      "agent_id": {
+        "tool": "kiro-desktop",
+        "id": "sess_d3b77645-54c7-46b1-9d1c-928de1533b21",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "zhanglkx <zhanglkx@foxmail.com>"
+    }
+  }
+}
