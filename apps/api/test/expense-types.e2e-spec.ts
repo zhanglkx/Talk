@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import {
+  BadRequestException,
   ConflictException,
   InternalServerErrorException,
   ServiceUnavailableException,
@@ -58,11 +59,58 @@ describe('ExpenseTypesController (e2e)', () => {
     const requestId = response.get('X-Request-Id')
 
     expect(requestId).toEqual(expect.stringMatching(/\S/))
-    expect(response.body).toMatchObject({
+    expect(response.body).toStrictEqual({
       code: 'VALIDATION_ERROR',
       message: expect.stringMatching(/\S/),
       requestId,
     })
+  })
+
+  it('校验异常携带字段错误时保留字段路径和提示', async () => {
+    const amountError = { path: ['items', 1, 'amountCents'], message: '金额必须大于 0' }
+    const reasonError = { path: ['reason'], message: '请填写事由' }
+    vi.spyOn(app.get(ExpenseTypesService), 'create').mockRejectedValueOnce(
+      new BadRequestException({
+        message: '请求参数不合法',
+        fieldErrors: [{ ...amountError, detail: 'test-only-detail' }, reasonError],
+      }),
+    )
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/expense-types')
+      .send({ name: '交通' })
+      .expect(400)
+    const requestId = response.get('X-Request-Id')
+
+    expect(requestId).toEqual(expect.stringMatching(/\S/))
+    expect(response.body).toStrictEqual({
+      code: 'VALIDATION_ERROR',
+      message: '请求参数不合法',
+      requestId,
+      fieldErrors: [amountError, reasonError],
+    })
+  })
+
+  it.each([
+    { scenario: '空列表', fieldErrors: [] },
+    {
+      scenario: '一条错误的路径含负数下标',
+      fieldErrors: [
+        { path: ['reason'], message: '请填写事由' },
+        { path: ['items', -1, 'amountCents'], message: '金额必须大于 0' },
+      ],
+    },
+  ])('字段错误为「$scenario」时省略整组 fieldErrors', async ({ fieldErrors }) => {
+    vi.spyOn(app.get(ExpenseTypesService), 'create').mockRejectedValueOnce(
+      new BadRequestException({ message: '请求参数不合法', fieldErrors }),
+    )
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/expense-types')
+      .send({ name: '交通' })
+      .expect(400)
+
+    expect(response.body).not.toHaveProperty('fieldErrors')
   })
 
   it('新增同名报销类型时返回 409、重名错误码和同一个请求 ID', async () => {

@@ -6,6 +6,7 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common'
+import { isFieldError, type FieldError } from '@/common/field-error.js'
 import type { ResponseWithRequestId } from '@/common/request-context.js'
 
 type RequestError = BadRequestException | NotFoundException | ConflictException
@@ -34,6 +35,26 @@ function getErrorCode(exception: RequestError): string {
   return 'CONFLICT'
 }
 
+// 只输出结构合格的字段错误，并且只复制 path 和 message，避免把异常对象里的其他内容带给客户端。
+// 有一项不合格就整组不输出：说明抛出方写错了，应由测试暴露，而不是只展示半份清单。
+function getFieldErrors(exception: RequestError): FieldError[] | undefined {
+  const details = exception.getResponse()
+  if (typeof details === 'string' || !('fieldErrors' in details)) {
+    return undefined
+  }
+
+  const list: unknown = details.fieldErrors
+  if (!Array.isArray(list)) {
+    return undefined
+  }
+  const items: unknown[] = list
+  if (items.length === 0 || !items.every(isFieldError)) {
+    return undefined
+  }
+
+  return items.map((item) => ({ path: [...item.path], message: item.message }))
+}
+
 @Catch(BadRequestException, NotFoundException, ConflictException)
 export class RequestErrorFilter implements ExceptionFilter<RequestError> {
   catch(exception: RequestError, host: ArgumentsHost): void {
@@ -43,6 +64,8 @@ export class RequestErrorFilter implements ExceptionFilter<RequestError> {
       code: getErrorCode(exception),
       message: exception.message,
       requestId: res.locals.requestId,
+      // 值为 undefined 时 JSON 序列化会省略这个键，对应契约里的可选字段
+      fieldErrors: getFieldErrors(exception),
     })
   }
 }
