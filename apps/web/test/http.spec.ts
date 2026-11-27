@@ -45,6 +45,34 @@ describe('公共 HTTP 请求契约', () => {
     if (path === '/validation') {
       return json(response, 400, { message: ['名称不能为空', '说明过长'] })
     }
+    if (path === '/field-errors') {
+      response.setHeader('X-Request-Id', 'header-request-id')
+      return json(response, 400, {
+        code: 'VALIDATION_ERROR',
+        message: '请求参数有误',
+        requestId: 'header-request-id',
+        fieldErrors: [
+          { path: ['items', 1, 'amountCents'], message: '金额必须大于 0', detail: 'test-only' },
+          { path: ['reason'], message: '请填写事由' },
+        ],
+      })
+    }
+    if (path === '/invalid-field-errors') {
+      return json(response, 400, {
+        code: 'VALIDATION_ERROR',
+        message: '请求参数有误',
+        fieldErrors: [
+          { path: ['reason'], message: '请填写事由' },
+          { path: ['items', -1, 'amountCents'], message: '金额必须大于 0' },
+        ],
+      })
+    }
+    if (path === '/server-field-errors') {
+      return json(response, 503, {
+        message: 'fictional internal detail',
+        fieldErrors: [{ path: ['reason'], message: 'fictional internal detail' }],
+      })
+    }
     if (path === '/business-error') {
       response.setHeader('X-Request-Id', 'header-request-id')
       return json(response, 422, {
@@ -214,6 +242,31 @@ describe('公共 HTTP 请求契约', () => {
       requestId: 'header-request-id',
     })
   })
+
+  it('400 保留字段错误的路径和提示，只取约定的属性', async () => {
+    const error = await client.post('/field-errors', {}).catch((error: unknown) => error)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({
+      kind: 'http',
+      status: 400,
+      code: 'VALIDATION_ERROR',
+      message: '请求参数有误',
+      requestId: 'header-request-id',
+    })
+    expect((error as ApiError).fieldErrors).toStrictEqual([
+      { path: ['items', 1, 'amountCents'], message: '金额必须大于 0' },
+      { path: ['reason'], message: '请填写事由' },
+    ])
+  })
+
+  it.each(['/invalid-field-errors', '/server-field-errors', '/conflict'] as const)(
+    '%s 没有合格字段错误时省略 fieldErrors',
+    async (path) => {
+      const error = await client.post(path, {}).catch((error: unknown) => error)
+      expect(error).toBeInstanceOf(ApiError)
+      expect((error as ApiError).fieldErrors).toBeUndefined()
+    },
+  )
 
   it('响应头没有请求编号时使用响应体中的编号', async () => {
     await expect(client.get('/body-request-id')).rejects.toMatchObject({

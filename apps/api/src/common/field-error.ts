@@ -7,6 +7,7 @@ export type FieldError = {
   message: string
 }
 
+// 路径段只能是非空字段名或从 0 开始的数组下标；负数、小数对应不到任何数组元素。
 function isPathSegment(value: unknown): value is string | number {
   if (typeof value === 'string') {
     return value.length > 0
@@ -14,6 +15,7 @@ function isPathSegment(value: unknown): value is string | number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
+// 空 path 不算字段错误：作用于整个请求体的问题定位不到输入框，应放进外层 message。
 export function isFieldError(value: unknown): value is FieldError {
   if (typeof value !== 'object' || value === null) {
     return false
@@ -26,6 +28,7 @@ export function isFieldError(value: unknown): value is FieldError {
   if (!Array.isArray(path)) {
     return false
   }
+  // Array.isArray 会收窄成 any[]，转存为 unknown[]，让每一段仍经过类型守卫检查。
   const segments: unknown[] = path
   if (segments.length === 0 || !segments.every(isPathSegment)) {
     return false

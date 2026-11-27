@@ -3,7 +3,7 @@
 调用方向：页面 / 业务 Hook → `@/api/index.ts` → 业务 API → `http/client.ts` → Axios。
 
 - `http/client.ts` 统一管理 `/api/v1` 前缀、10 秒默认超时和 AbortSignal。成功 JSON 采用 `{ data, requestId }` 格式，客户端检查这两项后只返回 `data`。204 空响应返回 `undefined`。每次调用发送一次请求，重试由调用层按业务语义决定。
-- `http/errors.ts`：将错误转为 `ApiError`，保留 `kind`、HTTP `status`、服务端提供的 `code` 和 `requestId`。兼容当前 Nest 错误和校验提示数组；5xx 使用统一提示。错误对象不保存原始请求体和认证配置。
+- `http/errors.ts`：将错误转为 `ApiError`，保留 `kind`、HTTP `status`、服务端提供的 `code`、`requestId` 和可选的 `fieldErrors`（每项 `path` + `message`，结构不合格时整组忽略，5xx 不保留）。兼容当前 Nest 错误和校验提示数组；5xx 使用统一提示。错误对象不保存原始请求体和认证配置。
 - `health/`、`expense-types/`：按业务集中维护接口方法和类型；内部通过具体路径导入 HTTP 客户端，避免公共入口的循环依赖。
 - `index.ts`：页面与业务 Hook 的公共入口，显式导出业务 API、类型和公共错误，不导出 HTTP 实例。
 
@@ -24,7 +24,7 @@ const created = await expenseTypesApi.create({ name: '差旅', description: '虚
 
 从公共入口导入 `ApiError` 和 `isRequestCanceled`。捕获后通过 `error instanceof ApiError` 收窄类型：
 
-- `kind === 'http'`：按 `status` 判断；例如 409 在名称字段显示重名反馈，其他错误根据页面需要展示。
+- `kind === 'http'`：按 `status` 判断；有 `fieldErrors` 时把每项的 `path` 作为 `name` 交给 `form.setFields` 显示在对应字段，其他错误根据页面需要展示。
 - `kind === 'timeout'` 或 `network`：展示提示，并提供用户主动重试。
 - `isRequestCanceled(error)`：属于主动取消，结束对应操作即可。
 - `kind === 'invalid-response'` 表示成功响应无法解析为 JSON，或响应体缺少 `data`、有效的 `requestId`。

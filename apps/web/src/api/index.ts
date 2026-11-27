@@ -8,5 +8,5 @@ export type {
   UpdateExpenseTypeInput,
 } from '@/api/expense-types/types.ts'
 export { ApiError, isRequestCanceled } from '@/api/http/errors.ts'
-export type { ApiErrorKind } from '@/api/http/errors.ts'
+export type { ApiErrorKind, FieldError } from '@/api/http/errors.ts'
 export type { RequestOptions } from '@/api/http/client.ts'

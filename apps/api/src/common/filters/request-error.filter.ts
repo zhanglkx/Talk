@@ -52,6 +52,7 @@ function getFieldErrors(exception: RequestError): FieldError[] | undefined {
     return undefined
   }
 
+  // 路径另建数组，响应数据不与异常对象共享引用。
   return items.map((item) => ({ path: [...item.path], message: item.message }))
 }
 
